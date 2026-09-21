@@ -1,0 +1,10 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Clients</h1><p>Fiches créées au check-in.</p></div><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Nom, téléphone, pièce" aria-label="Rechercher"></form></div>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Nom</th><th>Téléphone</th><th>Pièce</th><th>Statut</th><th></th></tr></thead><tbody>
+{% for c in items %}<tr><td><b>{{ c.full_name|default:"—" }}</b></td><td>{{ c.phone }}</td><td>{{ c.get_id_type_display }} {{ c.id_number }}</td>
+<td>{% if c.is_vip %}<span class="pill confirmed">VIP</span>{% endif %}{% if c.is_blacklisted %}<span class="pill cancelled">Liste noire</span>{% endif %}</td>
+<td class="right"><a class="btn sm" href="{% url 'client_edit' c.pk %}">Ouvrir</a></td></tr>
+{% empty %}<tr><td colspan="5" class="empty"><b>Aucun client</b></td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

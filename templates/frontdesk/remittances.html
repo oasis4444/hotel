@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Versements{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Versements au gérant</h1><p>Espèces remises en main propre. Le mobile money se contrôle séparément sur les comptes de l'hôtel.</p></div></div>
+{% if to_remit %}
+<div class="card"><div class="card-h"><h2>Quarts à verser</h2></div>
+  {% for s in to_remit %}
+  <form method="post" class="row between" style="padding:12px 0;border-bottom:1px solid var(--line)">{% csrf_token %}
+    <input type="hidden" name="action" value="create"><input type="hidden" name="shift" value="{{ s.pk }}">
+    <div><b>{{ s.user.display_name }}</b> · quart du {{ s.opened_at|dm }}<br><span class="muted small">Caisse déclarée {{ s.declared_cash|ar }}</span></div>
+    <div class="row"><div><label for="k{{ s.pk }}">Fond conservé (Ar)</label><input id="k{{ s.pk }}" type="number" name="kept_float" min="0" value="0" style="width:150px"></div>
+    <button class="btn primary" type="submit">Enregistrer le versement</button></div>
+  </form>{% endfor %}
+</div>
+{% endif %}
+<div class="card"><div class="card-h"><h2>Historique</h2></div>
+  <div class="table-wrap"><table class="t"><thead><tr><th>Quart</th><th class="num">Espèces à remettre</th><th class="num">Mobile money</th><th>Statut</th><th></th></tr></thead><tbody>
+  {% for r in items %}<tr>
+    <td>{{ r.user.display_name }}<br><span class="muted small">{{ r.shift.opened_at|dm }}</span></td>
+    <td class="num">{{ r.cash_amount|ar }}{% if r.kept_float %}<br><span class="muted small">fond gardé {{ r.kept_float|ar }}</span>{% endif %}</td>
+    <td class="num small">MVola {{ r.mvola_total|ar }}<br>Orange {{ r.orange_total|ar }}<br>Airtel {{ r.airtel_total|ar }}</td>
+    <td>{% if r.confirmed_at %}<span class="pill confirmed">Confirmé</span><br><span class="muted small">reçu {{ r.received_cash|ar }}{% if r.variance %} · écart {{ r.variance|ar }}{% endif %}</span>{% else %}<span class="pill pending">En attente</span>{% endif %}</td>
+    <td>{% if not r.confirmed_at and hperm.remit_confirm %}
+      <form method="post" class="stack" style="min-width:220px">{% csrf_token %}<input type="hidden" name="action" value="confirm"><input type="hidden" name="rem" value="{{ r.pk }}">
+        <input type="number" name="received_cash" min="0" placeholder="Espèces reçues (Ar)" required aria-label="Espèces reçues">
+        <input type="text" name="mobile_note" placeholder="Soldes mobile money contrôlés ?" aria-label="Contrôle mobile money">
+        <button class="btn sm primary" type="submit">Confirmer la réception</button></form>{% endif %}</td>
+  </tr>{% empty %}<tr><td colspan="5" class="empty"><b>Aucun versement</b>Ils apparaissent après la clôture d'un quart.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

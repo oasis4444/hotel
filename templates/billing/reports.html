@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Rapports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Rapports</h1><p>Du {{ d1|date:"j F" }} au {{ d2|date:"j F Y" }}</p></div>
+<form method="get" class="row"><input type="date" name="from" value="{{ d1|date:'Y-m-d' }}" aria-label="Du"><input type="date" name="to" value="{{ d2|date:'Y-m-d' }}" aria-label="Au"><button class="btn">Afficher</button><a class="btn" href="?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}&export=csv">Exporter CSV</a></form></div>
+<div class="summary">
+  <div class="chip"><b>{{ revenue|ar }}</b><span>Recettes nettes</span></div><div class="chip"><b>{{ stay_count }}</b><span>Séjours</span></div>
+  <div class="chip"><b>{{ extensions }}</b><span>Heures supplémentaires</span></div><div class="chip"><b>{{ cancelled }}</b><span>Annulations</span></div><div class="chip"><b>{{ no_show }}</b><span>No-show</span></div></div>
+<div class="grid g2">
+  <div class="card"><div class="card-h"><h2>Ventes par formule</h2></div><table class="t"><thead><tr><th>Formule</th><th class="num">Séjours</th><th class="num">Montant</th></tr></thead><tbody>{% for n, v in by_formula %}<tr><td>{{ n }}</td><td class="num">{{ v.0 }}</td><td class="num">{{ v.1|ar }}</td></tr>{% empty %}<tr><td colspan="3" class="muted">Aucune donnée.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><div class="card-h"><h2>Par mode de paiement</h2></div><table class="t"><tbody>{% for n, v in by_method %}<tr><td>{{ n }}</td><td class="num">{{ v|ar }}</td></tr>{% empty %}<tr><td class="muted">Aucune donnée.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><div class="card-h"><h2>Par réceptionniste</h2></div><table class="t"><tbody>{% for n, v in by_user %}<tr><td>{{ n }}</td><td class="num">{{ v|ar }}</td></tr>{% empty %}<tr><td class="muted">Aucune donnée.</td></tr>{% endfor %}</tbody></table></div>
+  <div class="card"><div class="card-h"><h2>Annulations par réceptionniste</h2></div><table class="t"><tbody>{% for n, v in cancel_by_user %}<tr><td>{{ n }}</td><td class="num">{{ v }}</td></tr>{% empty %}<tr><td class="muted">Aucune annulation.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div class="card"><div class="card-h"><h2>Recettes par jour</h2></div>
+{% for d, v, p in day_rows %}<div class="row" style="margin:6px 0"><span style="width:70px" class="small muted">{{ d|date:"d/m" }}</span><div style="flex:1;background:var(--surface-2);border-radius:8px"><div style="width:{{ p }}%;background:var(--lagoon);height:22px;border-radius:8px;min-width:2px"></div></div><span style="width:130px" class="right small">{{ v|ar }}</span></div>{% empty %}<div class="empty">Aucune recette sur la période.</div>{% endfor %}</div>
+<div class="card"><div class="card-h"><h2>Anomalies</h2></div><table class="t"><thead><tr><th>Quand</th><th>Qui</th><th>Type</th><th>Détail</th></tr></thead><tbody>
+{% for a in anomalies %}<tr><td class="nowrap">{{ a.created_at|dm }}</td><td>{{ a.user.display_name|default:"Système" }}</td><td><span class="pill cancelled">{{ a.action }}</span></td><td class="small">{{ a.object_repr }} {{ a.reason }}</td></tr>{% empty %}<tr><td colspan="4" class="muted">Aucune anomalie sur la période.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

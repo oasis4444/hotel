@@ -1,0 +1,18 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}{% if res %}Modifier{% else %}Nouvelle réservation{% endif %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% if res %}Modifier {{ res.code }}{% else %}Nouvelle réservation{% endif %}</h1><p>Les chambres proposées sont celles réellement libres sur le créneau, remise en état comprise.</p></div></div>
+<form method="post" class="card" style="max-width:820px" data-avail="{% url 'available_api' %}" {% if res %}data-exclude="{{ res.pk }}"{% endif %}>{% csrf_token %}
+  <div class="fields">
+    <div><label for="f">Formule</label>
+      <select id="f" name="formula" required><option value="">Choisir…</option>{% for f in formulas %}<option value="{{ f.id }}" {% if form.formula|stringformat:"s" == f.id|stringformat:"s" %}selected{% endif %}>{{ f.name }} · {{ f.price|ar }} ({{ f.plage }})</option>{% endfor %}</select></div>
+    <div><label for="s">Arrivée</label><input id="s" type="datetime-local" name="start" value="{% if res %}{{ form.start|dinput }}{% else %}{{ form.start }}{% endif %}" required></div>
+    <div class="wide"><label for="room-select">Chambre</label><select id="room-select" name="room" data-current="{{ form.room }}" required></select><div id="slot-info" class="hint"></div></div>
+    <div><label for="g">Nom du client</label><input id="g" type="text" name="guest_name" value="{{ form.guest_name }}" required><div class="hint">Un nom suffit : l'identité complète est saisie à l'arrivée.</div></div>
+    <div><label for="p">Téléphone</label><input id="p" type="tel" name="phone" value="{{ form.phone }}"></div>
+    {% if not res %}<div><label for="src">Origine</label><select id="src" name="source"><option value="onsite" {% if form.source == 'onsite' %}selected{% endif %}>Sur place</option><option value="phone" {% if form.source == 'phone' %}selected{% endif %}>Téléphone</option></select></div>{% endif %}
+    <div class="wide"><label for="n">Notes internes</label><textarea id="n" name="notes" rows="2">{{ form.notes }}</textarea></div>
+  </div>
+  <div class="row" style="margin-top:20px"><button class="btn primary" type="submit">{% if res %}Enregistrer{% else %}Créer la réservation{% endif %}</button><a class="btn ghost" href="{% if res %}{% url 'reservation_detail' res.pk %}{% else %}{% url 'reservations' %}{% endif %}">Annuler</a></div>
+</form>
+{% endblock %}

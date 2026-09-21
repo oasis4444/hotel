@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Chambres{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Chambres</h1><p id="live-status" class="small muted">Mise à jour automatique toutes les 8 secondes</p></div>
+  {% if hperm.reservation_create %}<a class="btn primary" href="{% url 'reservation_new' %}"><svg class="ic"><use href="#i-plus"/></svg>Nouvelle réservation</a>{% endif %}
+</div>
+<div id="live" data-url="{% url 'live' %}">{% include "frontdesk/_live.html" %}</div>
+{% endblock %}

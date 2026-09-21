@@ -1,0 +1,12 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Journal d'audit{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Journal d'audit</h1><p>Non modifiable : qui a fait quoi, quand, depuis quel appareil.</p></div>
+<form method="get" class="row"><input type="search" name="q" value="{{ q }}" placeholder="Rechercher" aria-label="Rechercher"><select name="k" onchange="this.form.submit()" aria-label="Filtre"><option value="">Tout</option><option value="anomaly" {% if kind == 'anomaly' %}selected{% endif %}>Anomalies seulement</option></select><button class="btn">Filtrer</button></form></div>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Quand</th><th>Qui</th><th>Action</th><th>Objet</th><th>Motif</th><th>IP</th></tr></thead><tbody>
+{% for a in items %}<tr>
+  <td class="nowrap">{{ a.created_at|dm }}</td><td>{{ a.user.display_name|default:"Système" }}</td>
+  <td>{% if a.is_anomaly %}<span class="pill cancelled">{{ a.action }}</span>{% else %}<code>{{ a.action }}</code>{% endif %}</td>
+  <td>{{ a.object_repr }}</td><td class="small">{{ a.reason }}</td><td class="small muted">{{ a.ip|default:"" }}</td></tr>
+{% empty %}<tr><td colspan="6" class="empty"><b>Aucune entrée</b></td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

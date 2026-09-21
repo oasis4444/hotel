@@ -1,0 +1,15 @@
+{% load static trano %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="refresh" content="20"><title>Suivi {{ res.code }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/trano.css' %}"></head><body>
+<header class="pub-top"><div class="pub-wrap"><h1>Demande {{ res.code }}</h1><p>{{ hotel.name }}</p></div></header>
+<div class="pub-body"><div class="card">
+  {% if res.status == 'cancelled' or res.status == 'no_show' %}<div class="msg error"><b>Cette demande n'est plus active.</b> Appelez l'hôtel au {{ hotel.phone }} si besoin.</div>
+  {% else %}
+  <div class="steps">{% for k, l in steps %}<div class="{% if forloop.counter0 <= reached %}on{% endif %}">{{ l }}</div>{% endfor %}</div>
+  <p>Chambre {{ res.room.number }} · {{ res.formula.name }}<br>Du {{ res.start_at|dm }} au {{ res.end_at|dm }}.</p>
+  {% if res.status == 'pending' %}<p class="muted">La réception va vous rappeler au {{ res.phone }}. Cette page se met à jour automatiquement.</p>
+  {% elif res.status == 'accepted' %}<p class="muted">Demande acceptée. Vous recevrez l'appel de confirmation avant l'arrivée.</p>
+  {% else %}<p><b>Réservation confirmée.</b> Présentez-vous à la réception avec une pièce d'identité.</p>{% endif %}
+  {% endif %}
+  <a class="btn" href="{% url 'portal_home' hotel.slug %}">Retour</a>
+</div></div></body></html>

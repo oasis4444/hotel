@@ -1,0 +1,16 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Check-in{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Check-in · chambre {{ res.room.number }}</h1><p>{{ res.guest_name }} · {{ res.formula.name }} · {{ res.start_at|dm }} → {{ res.end_at|dm }}. L'identité doit être complète.</p></div></div>
+<form method="post" enctype="multipart/form-data" class="card" style="max-width:860px">{% csrf_token %}
+  {% if form.non_field_errors %}<div class="msg error">{{ form.non_field_errors }}</div>{% endif %}
+  <div class="fields">
+    {% for f in form %}{% if f.name != 'signature' and f.name != 'notes' %}
+    <div {% if f.name == 'address' %}class="wide"{% endif %}><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endif %}{% endfor %}
+    <div class="wide"><label>Signature du client</label><canvas id="sig-canvas" class="sig" aria-label="Zone de signature"></canvas>{{ form.signature }}
+      <div class="row" style="margin-top:6px"><button type="button" id="sig-clear" class="btn sm">Effacer</button><span class="hint">Signez avec le doigt ou la souris.</span></div></div>
+    {% if can_override %}<div class="wide"><label for="ov">Dérogation du gérant (identité incomplète)</label><input id="ov" type="text" name="override_reason" placeholder="Motif : laisser vide si l'identité est complète"></div>{% endif %}
+  </div>
+  <div class="row" style="margin-top:20px"><button class="btn primary" type="submit">Valider l'arrivée</button><a class="btn ghost" href="{% url 'reservation_detail' res.pk %}">Annuler</a></div>
+</form>
+{% endblock %}

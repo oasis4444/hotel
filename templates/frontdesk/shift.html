@@ -1,0 +1,59 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Mon quart{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Mon quart</h1><p>Chaque encaissement et chaque dépense est rattaché à votre quart.</p></div></div>
+{% if shift %}
+<div class="split">
+  <div>
+    <div class="card">
+      <div class="card-h"><h2>Quart en cours</h2><span class="pill free">Ouvert depuis {{ shift.opened_at|dm }}</span></div>
+      <div class="grid g4">
+        <div class="kpi"><b>{{ shift.opening_float|ar }}</b><span>Fond de caisse</span></div>
+        <div class="kpi"><b>{{ total_all|ar }}</b><span>Encaissé ({{ pay_count }} paiement{{ pay_count|pluralize }})</span></div>
+        <div class="kpi"><b>{{ shift.advances_out|ar }}</b><span>Sorties de caisse</span></div>
+        <div class="kpi"><b>{{ shift.change_in|ar }}</b><span>Monnaie rendue</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Encaissé par mode</h2></div>
+      <table class="t"><tbody>
+        <tr><td>Espèces</td><td class="num">{{ totals.cash|ar }}</td></tr>
+        <tr><td>MVola</td><td class="num">{{ totals.mvola|ar }}</td></tr>
+        <tr><td>Orange Money</td><td class="num">{{ totals.orange|ar }}</td></tr>
+        <tr><td>Airtel Money</td><td class="num">{{ totals.airtel|ar }}</td></tr>
+      </tbody></table>
+      <p class="hint">Le montant théorique de la caisse reste caché : vous le comptez d'abord, l'écart est révélé ensuite.</p>
+    </div>
+  </div>
+  <div class="card"><div class="card-h"><h2>Terminer mon quart</h2></div>
+    <p class="muted">Comptez les espèces, puis faites la passation. Le versement au gérant se fait juste après.</p>
+    <a class="btn primary block" href="{% url 'shift_close' %}">Compter la caisse et clôturer</a>
+  </div>
+</div>
+{% else %}
+<div class="split">
+  <div class="card">
+    <div class="card-h"><h2>Ouvrir mon quart</h2></div>
+    {% if pending %}
+    <div class="msg info" style="margin-bottom:16px"><b>Passation de {{ pending.user.display_name }}</b><br>
+      Quart clôturé à {{ pending.closed_at|dm }}. Caisse déclarée : <b>{{ pending.declared_cash|ar }}</b>.
+      {% if pending.handover_note %}<br>Note : {{ pending.handover_note }}{% endif %}</div>
+    {% endif %}
+    <form method="post" action="{% url 'shift_open' %}">{% csrf_token %}
+      <div class="fields"><div class="wide"><label for="of">Fond de caisse compté à l'ouverture (Ar)</label>
+        <input type="number" id="of" name="opening_float" min="0" value="{{ pending.declared_cash|default:0 }}" required>
+        <div class="hint">{% if pending %}Comptez l'argent laissé. Un écart avec la déclaration du quart précédent est signalé au gérant.{% else %}Montant des espèces présentes dans la caisse.{% endif %}</div></div></div>
+      <p><button class="btn primary" type="submit">{% if pending %}Signer la passation et ouvrir{% else %}Ouvrir le quart{% endif %}</button></p>
+    </form>
+  </div>
+</div>
+{% endif %}
+<div class="card"><div class="card-h"><h2>Derniers quarts</h2></div>
+  <div class="table-wrap"><table class="t"><thead><tr><th>Réceptionniste</th><th>Ouvert</th><th>Clôturé</th><th class="num">Caisse déclarée</th><th class="num">Écart</th></tr></thead><tbody>
+    {% for s in recent %}<tr><td>{{ s.user.display_name }}</td><td>{{ s.opened_at|dm }}</td><td>{% if s.closed_at %}{{ s.closed_at|dm }}{% else %}<span class="pill free">En cours</span>{% endif %}</td>
+      <td class="num">{% if s.declared_cash is not None %}{{ s.declared_cash|ar }}{% else %}—{% endif %}</td>
+      <td class="num">{% if s.variance is not None %}<span class="{% if s.variance %}muted{% endif %}">{{ s.variance|ar }}</span>{% else %}—{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="5" class="empty">Aucun quart pour le moment.</td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endblock %}

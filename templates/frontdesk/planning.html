@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Planning{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Planning</h1><p>{{ day|date:"l j F Y" }}</p></div>
+  <div class="row">
+    <a class="btn" href="?date={{ prev|date:'Y-m-d' }}">Veille</a>
+    <form method="get" class="row"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Date"></form>
+    <a class="btn" href="?date={{ next|date:'Y-m-d' }}">Lendemain</a>
+  </div>
+</div>
+<div class="card plan">
+  <div class="plan-in">
+    <div class="plan-head"><div></div>
+      <div class="plan-hours">{% for h in hours %}<span style="left:{% widthratio h 24 100 %}%">{{ h }}h</span>{% endfor %}</div>
+    </div>
+    {% for row in rows %}
+    <div class="plan-row">
+      <div class="plan-room">{{ row.room.number }}<small>{{ row.room.room_type.name }}</small></div>
+      <div class="plan-track">
+        {% if now_left is not None %}<span class="now-line" style="left:{{ now_left }}%"></span>{% endif %}
+        {% for b in row.bars %}
+        <a class="bar st-{{ b.res.status }}" style="left:{{ b.left }}%;width:{{ b.width }}%" href="{% url 'reservation_detail' b.res.pk %}" title="{{ b.res.guest_name }} · {{ b.res.formula.name }} · {{ b.res.start_at|hm }} → {{ b.res.end_at|hm }}">{{ b.res.guest_name }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% empty %}<div class="empty"><b>Aucune chambre</b></div>{% endfor %}
+  </div>
+</div>
+<div class="legend"><span><i style="background:var(--dirty)"></i>En attente</span><span><i style="background:var(--resv)"></i>Acceptée / confirmée</span><span><i style="background:var(--occ)"></i>En séjour</span><span><i style="background:var(--maint)"></i>Terminée</span></div>
+{% endblock %}

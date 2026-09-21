@@ -1,0 +1,49 @@
+{% load trano %}
+<div data-sound="{{ sound_keys }}" hidden></div>
+<div class="summary">
+  <div class="chip"><b>{{ occupancy }}%</b><span>Taux d'occupation</span></div>
+  <div class="chip"><b>{{ counts.free|default:0 }}</b><span>Libres maintenant</span></div>
+  <div class="chip"><b>{{ counts.occupied|default:0 }}</b><span>Occupées</span></div>
+  <div class="chip"><b>{{ counts.cleaning|default:0 }}</b><span>En remise en état</span></div>
+  <div class="chip {% if danger_count %}hot{% endif %}"><b>{{ danger_count }}</b><span>Alertes urgentes</span></div>
+</div>
+<div class="live-layout">
+  <section>
+    {% if tiles %}
+    <div class="board">
+      {% for t in tiles %}
+      {% with s=t.state r=t.state.res %}
+      <a class="tile s-{{ s.code }}" href="{% if r %}{% url 'reservation_detail' r.pk %}{% elif s.code == 'free' and hperm.reservation_create %}{% url 'reservation_new' %}?room={{ t.room.id }}{% elif s.code == 'cleaning' %}{% url 'cleaning' %}{% else %}#{% endif %}">
+        <div class="tile-top">
+          <div><div class="rn">{{ t.room.number }}</div><div class="rt">{{ t.room.room_type.name }}</div></div>
+          {% if s.code == 'occupied' %}
+            <div class="ring" style="--p: {{ s.progress }}"><span class="cd" data-end="{% epoch s.until %}" data-warn="{{ t.room.hotel.warn_before_end_minutes }}"></span></div>
+          {% endif %}
+        </div>
+        <div class="tile-foot">
+          <span class="st">{{ s.label }}</span>
+          <span class="sub">{{ s.sub }}</span>
+          {% if r %}<span class="who">{{ r.guest_name }} · {{ r.formula.name }}</span>{% endif %}
+        </div>
+      </a>
+      {% endwith %}
+      {% endfor %}
+    </div>
+    <div class="legend" aria-label="Légende">
+      <span><i style="background:var(--free)"></i>Libre</span><span><i style="background:var(--occ)"></i>Occupée</span>
+      <span><i style="background:var(--resv)"></i>Réservée (arrivée proche)</span><span><i style="background:var(--clean)"></i>Remise en état</span>
+      <span><i style="background:var(--maint)"></i>Maintenance</span><span><i style="background:var(--oos)"></i>Hors service</span>
+    </div>
+    {% else %}
+    <div class="card empty"><b>Aucune chambre configurée</b>Ajoutez vos chambres et vos formules dans l'administration pour commencer.</div>
+    {% endif %}
+  </section>
+  <aside class="alerts">
+    <div class="card-h"><h2>À faire maintenant</h2></div>
+    {% for a in alerts %}
+      <a class="alert {{ a.level }}" href="{{ a.url }}"><b>{{ a.title }}</b><span>{{ a.text }}</span></a>
+    {% empty %}
+      <div class="card empty flat"><b>Rien d'urgent</b>Les alertes de fin de créneau, d'appels et de ménage apparaîtront ici.</div>
+    {% endfor %}
+  </aside>
+</div>

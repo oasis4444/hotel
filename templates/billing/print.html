@@ -1,0 +1,10 @@
+{% load trano %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Facture {{ inv.number }}</title>
+<style>body{font:14px system-ui,sans-serif;color:#111}.sheet{max-width:720px;margin:24px auto;padding:24px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin:16px 0}td,th{padding:8px 4px;border-bottom:1px solid #ddd;text-align:left}td.n,th.n{text-align:right}.tot{font-size:18px;font-weight:700}@media print{.no{display:none}}</style></head>
+<body onload="window.print()"><div class="sheet">
+<h1>{{ inv.hotel.name }}</h1><div>{{ inv.hotel.address }} · {{ inv.hotel.phone }}</div><hr>
+<p><b>Facture {{ inv.number }}</b> · {{ inv.created_at|dm }}<br>Client : {{ inv.customer_name }}</p>
+<table><thead><tr><th>Description</th><th class="n">Qté</th><th class="n">Montant</th></tr></thead><tbody>
+{% for a in allocs %}{% if a.status != 'cancelled' %}<tr><td>{{ a.line.description }}</td><td class="n">{{ a.line.quantity }}</td><td class="n">{{ a.line.amount|ar }}</td></tr>{% endif %}{% endfor %}</tbody></table>
+<p class="tot">Total : {{ inv.total|ar }}</p><p>Payé : {{ inv.net_paid|ar }} · Reste : {{ inv.balance|ar }}</p>
+{% for p in payments %}<div>Reçu {{ p.receipt_number }} · {{ p.get_method_display }} · {{ p.amount|ar }} · {{ p.created_at|dm }}</div>{% endfor %}
+<p style="margin-top:30px">Merci de votre visite.</p></div></body></html>

@@ -1,0 +1,17 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Réservations{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Réservations</h1><p>Les demandes en ligne apparaissent en tête de « À traiter ».</p></div>
+  <div class="row"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Nom, téléphone, code, chambre" aria-label="Rechercher"></form>
+  {% if hperm.reservation_create %}<a class="btn primary" href="{% url 'reservation_new' %}"><svg class="ic"><use href="#i-plus"/></svg>Nouvelle</a>{% endif %}</div></div>
+<div class="tabs">{% for k, l in tabs %}<a href="?tab={{ k }}" class="{% if tab == k %}on{% endif %}">{{ l }}{% if k == 'todo' and counts.todo %} ({{ counts.todo }}){% endif %}{% if k == 'stay' and counts.stay %} ({{ counts.stay }}){% endif %}</a>{% endfor %}</div>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Code</th><th>Client</th><th>Chambre</th><th>Formule</th><th>Arrivée</th><th>Fin</th><th>Statut</th><th></th></tr></thead><tbody>
+{% for r in items %}<tr>
+  <td><b>{{ r.code }}</b>{% if r.source == 'online' %}<br><span class="small muted">en ligne</span>{% endif %}</td>
+  <td>{{ r.guest_name }}<br><span class="small muted">{{ r.phone }}</span></td>
+  <td>{{ r.room.number }}</td><td>{{ r.formula.name }}</td><td class="nowrap">{{ r.start_at|dm }}</td><td class="nowrap">{{ r.end_at|dm }}</td>
+  <td><span class="pill {{ r.status }}">{{ r.get_status_display }}</span></td>
+  <td class="right"><a class="btn sm" href="{% url 'reservation_detail' r.pk %}">Ouvrir</a></td></tr>
+{% empty %}<tr><td colspan="8" class="empty"><b>Aucune réservation ici</b>Changez d'onglet ou créez une réservation.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

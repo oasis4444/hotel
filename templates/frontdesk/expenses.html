@@ -1,0 +1,39 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Dépenses{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Dépenses</h1><p>Demande, accord de la réception, avance, justificatif, régularisation.</p></div></div>
+{% if unjustified %}<div class="msg warning">{{ unjustified }} avance{{ unjustified|pluralize }} non justifiée{{ unjustified|pluralize }}. Une avance non justifiée bloque toute nouvelle avance à la même personne.</div>{% endif %}
+<div class="split">
+<div class="card"><div class="card-h"><h2>Suivi</h2></div>
+{% for e in items %}
+  <div style="padding:14px 0;border-bottom:1px solid var(--line)">
+    <div class="row between"><div><b>{{ e.description }}</b><br><span class="muted small">{{ e.requester.display_name }} · {{ e.created_at|dm }} · {{ e.get_category_display }}</span></div>
+      <div class="right"><span class="pill {{ e.status }}">{{ e.get_status_display }}</span><br><span class="small">Estimé {{ e.estimated_amount|ar }}</span></div></div>
+    {% if e.status == 'advanced' %}<div class="small muted">Avance {{ e.advance_amount|ar }} remise le {{ e.advanced_at|dm }}</div>{% endif %}
+    {% if e.status == 'settled' %}<div class="small muted">Réel {{ e.actual_amount|ar }} · monnaie rendue {{ e.change_returned|ar }}{% if e.receipt_photo %} · <a href="{{ e.receipt_photo.url }}" target="_blank" rel="noopener">justificatif</a>{% endif %}</div>{% endif %}
+    {% if e.decision_reason %}<div class="small muted">Motif : {{ e.decision_reason }}</div>{% endif %}
+    {% if hperm.expense_approve %}
+      {% if e.status == 'requested' %}
+      <div class="row" style="margin-top:10px">
+        <form method="post" action="{% url 'expense_action' e.pk 'accept' %}">{% csrf_token %}<button class="btn sm primary">Accepter</button></form>
+        <form method="post" action="{% url 'expense_action' e.pk 'reject' %}" class="row">{% csrf_token %}<input type="text" name="reason" placeholder="Motif du refus" style="width:190px" aria-label="Motif du refus"><button class="btn sm danger">Refuser</button></form>
+      </div>
+      {% elif e.status == 'accepted' %}
+      <form method="post" action="{% url 'expense_action' e.pk 'advance' %}" class="row" style="margin-top:10px">{% csrf_token %}<input type="number" name="amount" value="{{ e.estimated_amount }}" min="1" style="width:150px" aria-label="Montant remis"><button class="btn sm primary">Sortir l'avance de la caisse</button></form>
+      {% elif e.status == 'advanced' %}
+      <form method="post" action="{% url 'expense_action' e.pk 'settle' %}" enctype="multipart/form-data" class="row" style="margin-top:10px">{% csrf_token %}
+        <input type="number" name="actual" min="0" placeholder="Montant réel" style="width:140px" required aria-label="Montant réel"><input type="file" name="photo" accept="image/*" capture="environment" style="width:210px" aria-label="Photo du justificatif"><button class="btn sm primary">Régulariser</button></form>
+      {% endif %}
+    {% endif %}
+  </div>
+{% empty %}<div class="empty"><b>Aucune dépense</b>Faites une demande depuis le formulaire.</div>{% endfor %}
+</div>
+<div class="card"><div class="card-h"><h2>Nouvelle demande</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="d">Quoi et pourquoi</label><input id="d" type="text" name="description" placeholder="Ex. Savon et lessive pour le ménage" required></div>
+    <div><label for="c">Catégorie</label><select id="c" name="category">{% for v, l in categories %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="m">Montant estimé (Ar)</label><input id="m" type="number" name="estimated" min="1" required></div>
+    <button class="btn primary block" type="submit">Envoyer la demande</button>
+  </form>
+</div></div>
+{% endblock %}

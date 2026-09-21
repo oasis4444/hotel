@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Ménage{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Ménage</h1><p>Après le départ, la chambre redevient vendable dès que la réception l'a contrôlée.</p></div></div>
+<div class="card"><div class="card-h"><h2>Chambres à traiter</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Chambre</th><th>Statut</th><th>Départ</th><th>Depuis</th><th></th></tr></thead><tbody>
+{% for t in open_tasks %}<tr>
+  <td><b style="font:800 20px var(--f-display)">{{ t.room.number }}</b>{% if t.urgent %} <span class="pill cancelled">Prioritaire</span>{% endif %}</td>
+  <td><span class="pill {{ t.status }}">{{ t.get_status_display }}</span></td>
+  <td>{{ t.checkout_at|hm }}</td><td class="muted">{{ t.checkout_at|timesince }}</td>
+  <td class="right">
+    {% if t.status == 'todo' and hperm.cleaning_work %}<form method="post" action="{% url 'cleaning_action' t.pk 'start' %}">{% csrf_token %}<button class="btn sm primary">Commencer</button></form>{% endif %}
+    {% if t.status == 'in_progress' and hperm.cleaning_work %}<form method="post" action="{% url 'cleaning_action' t.pk 'done' %}">{% csrf_token %}<button class="btn sm primary">Terminé</button></form>{% endif %}
+    {% if t.status == 'done' and hperm.cleaning_verify %}<form method="post" action="{% url 'cleaning_action' t.pk 'verify' %}">{% csrf_token %}<button class="btn sm primary">Contrôlée : rendre disponible</button></form>{% endif %}
+  </td></tr>
+{% empty %}<tr><td colspan="5" class="empty"><b>Tout est propre</b>Aucune chambre en attente de ménage.</td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="card"><div class="card-h"><h2>Dernières chambres prêtes</h2></div>
+<table class="t"><thead><tr><th>Chambre</th><th>Nettoyage</th><th>Prête après le départ</th><th>Par</th></tr></thead><tbody>
+{% for t in done %}<tr><td>{{ t.room.number }}</td><td>{{ t.cleaning_minutes|default_if_none:"—" }}{% if t.cleaning_minutes %} min{% endif %}</td><td>{{ t.minutes_to_ready }} min</td><td>{{ t.worked_by.display_name|default:"—" }}</td></tr>
+{% empty %}<tr><td colspan="4" class="muted">Aucun historique.</td></tr>{% endfor %}</tbody></table></div>
+{% endblock %}

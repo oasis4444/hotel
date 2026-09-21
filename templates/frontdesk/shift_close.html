@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Clôturer le quart{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Clôturer mon quart</h1><p>Comptage à l'aveugle : déclarez ce que vous avez compté avant de voir le montant attendu.</p></div></div>
+<div class="card" style="max-width:640px">
+<form method="post">{% csrf_token %}
+  {% if stage == 'explain' %}
+    <div class="msg warning" style="margin-bottom:16px"><b>Écart de caisse : {{ variance|ar }}</b><br>Vous avez déclaré {{ declared|ar }}, le système attendait {{ expected|ar }}. Justifiez cet écart pour clôturer.</div>
+    <input type="hidden" name="declared_cash" value="{{ declared }}"><input type="hidden" name="handover_note" value="{{ handover }}">
+    <label for="vn">Justification de l'écart</label><textarea id="vn" name="variance_note" rows="3" required></textarea>
+  {% else %}
+    <div class="stack">
+      <div><label for="dc">Espèces comptées dans la caisse (Ar)</label><input type="number" id="dc" name="declared_cash" min="0" required autofocus></div>
+      <div><label for="hn">Note de passation</label><textarea id="hn" name="handover_note" rows="4" placeholder="Chambres en cours, clients à rappeler, incidents, clés, tâches restantes…"></textarea></div>
+    </div>
+  {% endif %}
+  <div class="row" style="margin-top:20px"><button class="btn primary" type="submit">{% if stage == 'explain' %}Justifier et clôturer{% else %}Valider mon comptage{% endif %}</button><a class="btn ghost" href="{% url 'shift' %}">Annuler</a></div>
+</form></div>
+{% endblock %}

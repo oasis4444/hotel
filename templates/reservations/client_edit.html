@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}{{ client }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ client }}</h1><p>Données personnelles : accès restreint.</p></div></div>
+<div class="split"><form method="post" enctype="multipart/form-data" class="card">{% csrf_token %}
+  <div class="fields">{% for f in form %}{% if f.name != 'signature' %}<div {% if f.name in 'address notes' %}class="wide"{% endif %}><label for="{{ f.id_for_label }}">{{ f.label }}</label>{{ f }}{{ f.errors }}</div>{% endif %}{% endfor %}
+  <div><label><input type="checkbox" name="is_vip" {% if client.is_vip %}checked{% endif %}> Client VIP</label></div>
+  <div><label><input type="checkbox" name="is_blacklisted" {% if client.is_blacklisted %}checked{% endif %}> Liste noire</label></div></div>
+  <p><button class="btn primary">Enregistrer</button></p></form>
+<div class="card"><div class="card-h"><h2>Séjours</h2></div>{% for s in stays %}<div style="padding:8px 0;border-bottom:1px solid var(--line)"><a href="{% url 'reservation_detail' s.pk %}">{{ s.code }}</a> · ch. {{ s.room.number }} · {{ s.start_at|dm }}<br><span class="pill {{ s.status }}">{{ s.get_status_display }}</span></div>{% empty %}<span class="muted">Aucun séjour.</span>{% endfor %}</div></div>
+{% endblock %}

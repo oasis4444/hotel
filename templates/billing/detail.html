@@ -1,0 +1,43 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Facture {{ inv.number }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Facture {{ inv.number }} <span class="pill {{ inv.status }}" style="vertical-align:middle">{{ inv.status_label }}</span></h1><p>{{ inv.customer_name }}{% if inv.reservation %} · <a href="{% url 'reservation_detail' inv.reservation.pk %}">{{ inv.reservation.code }}</a>{% endif %}</p></div>
+<a class="btn" href="{% url 'invoice_print' inv.pk %}" target="_blank" rel="noopener">Imprimer</a></div>
+<div class="split"><div>
+  <div class="card"><div class="card-h"><h2>Folio</h2></div>
+    {% for a in allocs %}<div class="total-row" style="align-items:center"><span {% if a.status == 'cancelled' %}style="text-decoration:line-through;opacity:.6"{% endif %}>{{ a.line.description }}{% if a.line.quantity > 1 %} × {{ a.line.quantity }}{% endif %} <span class="pill {{ a.status }}">{% if a.status == 'paid' %}Payée{% elif a.status == 'partial' %}Partielle{% elif a.status == 'cancelled' %}Annulée{% else %}Non payée{% endif %}</span></span>
+      <span class="row">{{ a.line.amount|ar }}
+      {% if a.status != 'cancelled' and hperm.billing_pay %}<form method="post" action="{% url 'invoice_action' inv.pk 'cancel_line' %}" class="row" data-confirm="Annuler cette ligne ?">{% csrf_token %}<input type="hidden" name="line" value="{{ a.line.pk }}"><input type="text" name="reason" placeholder="Motif" style="width:110px;min-height:34px" required aria-label="Motif"><button class="btn sm ghost">Annuler</button></form>{% endif %}</span></div>{% endfor %}
+    <div class="total-row"><span>Total</span><span>{{ inv.total|ar }}</span></div><div class="total-row"><span>Encaissé (net)</span><span>{{ inv.net_paid|ar }}</span></div>
+    {% if inv.refunded %}<div class="total-row"><span>Dont remboursé</span><span>{{ inv.refunded|ar }}</span></div>{% endif %}
+    <div class="total-row big"><span>Solde à payer</span><span>{{ inv.balance|ar }}</span></div>
+    {% if hperm.billing_pay and not inv.is_cancelled %}<details class="more"><summary>Ajouter une prestation (repas, service…)</summary>
+      <form method="post" action="{% url 'invoice_action' inv.pk 'line' %}" class="fields" style="margin-top:12px">{% csrf_token %}
+        <div><label>Type</label><select name="kind">{% for v, l in kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+        <div class="wide"><label>Description</label><input type="text" name="description" required></div>
+        <div><label>Quantité</label><input type="number" name="quantity" min="1" value="1"></div><div><label>Prix unitaire (Ar)</label><input type="number" name="unit_price" min="0" required></div>
+        <div><button class="btn primary">Ajouter</button></div></form></details>{% endif %}</div>
+  <div class="card"><div class="card-h"><h2>Paiements</h2></div>
+    <table class="t"><thead><tr><th>Reçu</th><th>Date</th><th>Mode</th><th>Référence</th><th class="num">Montant</th></tr></thead><tbody>
+    {% for p in payments %}<tr><td>{{ p.receipt_number }}<br><span class="pill {% if p.kind == 'refund' %}refunded{% else %}paid{% endif %}">{{ p.get_kind_display }}</span></td><td>{{ p.created_at|dm }}<br><span class="small muted">{{ p.user.display_name }}</span></td><td>{{ p.get_method_display }}</td><td class="small">{{ p.reference }}{% if p.payer_phone %}<br>{{ p.payer_phone }}{% endif %}{% if p.reason %}<br>{{ p.reason }}{% endif %}</td>
+      <td class="num">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|ar }}</td></tr>
+    {% empty %}<tr><td colspan="5" class="muted">Aucun paiement.</td></tr>{% endfor %}</tbody></table></div>
+</div>
+<div>
+  {% if hperm.billing_pay and not inv.is_cancelled and inv.balance > 0 %}
+  <div class="card"><div class="card-h"><h2>Encaisser</h2></div>
+    {% if not shift %}<div class="msg warning">Ouvrez votre quart avant d'encaisser. <a href="{% url 'shift' %}">Mon quart</a></div>{% endif %}
+    <form method="post" action="{% url 'invoice_action' inv.pk 'pay' %}" class="stack">{% csrf_token %}
+      <div><label for="m">Mode de paiement</label><select id="m" name="method">{% for v, l in methods %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+      <div><label for="a">Montant (Ar)</label><input id="a" type="number" name="amount" min="1" max="{{ inv.balance }}" value="{{ inv.balance }}" required></div>
+      <div><label for="r">Référence de transaction</label><input id="r" type="text" name="reference" placeholder="Obligatoire pour le mobile money"></div>
+      <div><label for="t">Numéro payeur</label><input id="t" type="tel" name="payer_phone"></div>
+      <button class="btn primary block">Enregistrer le paiement</button></form></div>{% endif %}
+  {% if hperm.billing_refund and inv.net_paid > 0 %}
+  <div class="card"><div class="card-h"><h2>Rembourser</h2></div><p class="small muted">Jamais pour un départ anticipé. Motif obligatoire.</p>
+    <form method="post" action="{% url 'invoice_action' inv.pk 'refund' %}" class="stack" data-confirm="Enregistrer ce remboursement ?">{% csrf_token %}
+      <select name="method" aria-label="Mode">{% for v, l in methods %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <input type="number" name="amount" min="1" max="{{ inv.net_paid }}" placeholder="Montant" required aria-label="Montant"><input type="text" name="reason" placeholder="Motif" required aria-label="Motif">
+      <button class="btn danger block">Rembourser</button></form></div>{% endif %}
+</div></div>
+{% endblock %}

@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}Factures{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Factures</h1><p>Chaque prestation est facturée et suivie en temps réel.</p></div>
+<form method="get" class="row"><input type="search" name="q" value="{{ q }}" placeholder="N° ou client" aria-label="Rechercher"><select name="s" onchange="this.form.submit()" aria-label="Statut"><option value="">Tous les statuts</option>{% for k, l in statuses %}<option value="{{ k }}" {% if s == k %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></form></div>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>N°</th><th>Client</th><th>Date</th><th class="num">Total</th><th class="num">Reste</th><th>Statut</th><th></th></tr></thead><tbody>
+{% for i in items %}<tr><td><b>{{ i.number }}</b></td><td>{{ i.customer_name }}</td><td>{{ i.created_at|dm }}</td><td class="num">{{ i.total|ar }}</td><td class="num">{{ i.balance|ar }}</td><td><span class="pill {{ i.status }}">{{ i.status_label }}</span></td><td class="right"><a class="btn sm" href="{% url 'invoice_detail' i.pk %}">Ouvrir</a></td></tr>
+{% empty %}<tr><td colspan="7" class="empty"><b>Aucune facture</b></td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% load static trano %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ hotel.name }} · Réserver</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/trano.css' %}"></head><body>
+<header class="pub-top"><div class="pub-wrap"><h1>{{ hotel.name }}</h1><p>{{ hotel.tagline|default:"Réservez votre chambre à l'heure, à la journée ou pour la nuit." }}</p>{% if hotel.phone %}<p>{{ hotel.phone }} · {{ hotel.address }}</p>{% endif %}</div></header>
+<div class="pub-body">
+  <div class="card"><div class="card-h"><h2>Disponibilité en direct</h2></div>
+    <div id="pub-rooms" data-url="{% url 'portal_rooms' hotel.slug %}">{% include "portal/_rooms.html" %}</div></div>
+  <form method="post" action="{% url 'portal_book' hotel.slug %}" class="card" data-avail="{% url 'portal_available' hotel.slug %}">{% csrf_token %}
+    <div class="card-h"><h2>Demander une réservation</h2></div>
+    {% if errors %}<div class="msg error" style="margin-bottom:14px">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+    <div class="fields">
+      <div><label for="f">Formule</label><select id="f" name="formula" required><option value="">Choisir…</option>{% for f in formulas %}<option value="{{ f.id }}" {% if form.formula == f.id|stringformat:"s" %}selected{% endif %}>{{ f.name }} · {{ f.price|ar }}</option>{% endfor %}</select></div>
+      <div><label for="s">Arrivée</label><input id="s" type="datetime-local" name="start" value="{{ start }}" required></div>
+      <div class="wide"><label for="room-select">Chambre</label><select id="room-select" name="room" data-current="{{ form.room }}" required></select><div id="slot-info" class="hint"></div></div>
+      <div><label for="g">Votre nom</label><input id="g" type="text" name="guest_name" value="{{ form.guest_name }}" required></div>
+      <div><label for="p">Téléphone joignable</label><input id="p" type="tel" name="phone" value="{{ form.phone }}" required><div class="hint">La réception vous rappellera pour confirmer.</div></div>
+      <div class="wide"><label for="n">Précisions (facultatif)</label><textarea id="n" name="notes" rows="2">{{ form.notes }}</textarea></div>
+      <div class="hp" aria-hidden="true"><label>Site web<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+    </div>
+    <p><button class="btn primary" type="submit">Envoyer la demande</button></p>
+    <p class="hint">Aucun paiement en ligne. Votre demande n'est valable qu'une fois confirmée par téléphone.</p>
+  </form>
+</div>
+<script src="{% static 'js/trano.js' %}" defer></script></body></html>

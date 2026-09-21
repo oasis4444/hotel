@@ -1,0 +1,34 @@
+{% load static %}<!doctype html>
+<html lang="fr"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Connexion · {{ APP_NAME|default:"Trano" }}</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/trano.css' %}">
+</head><body>
+<div class="login">
+  <section class="login-art">
+    <div class="brand">Trano</div>
+    <div>
+      <h2>Chaque heure de chambre compte.</h2>
+      <p>Disponibilités à la minute, encaissements tracés, quarts maîtrisés. Tout ce que la réception doit voir, au même endroit.</p>
+      <div class="mini-tl" aria-hidden="true">
+        <div><i style="left:4%;width:38%"></i><i class="b" style="left:52%;width:40%"></i></div>
+        <div><i class="c" style="left:14%;width:22%"></i><i style="left:44%;width:50%"></i></div>
+        <div><i class="b" style="left:2%;width:56%"></i><i class="c" style="left:66%;width:26%"></i></div>
+      </div>
+    </div>
+    <small style="color:#7FA3AC">Gestion hôtelière · Madagascar</small>
+  </section>
+  <section class="login-form">
+    <form method="post">{% csrf_token %}
+      <h1>Connexion</h1>
+      <p class="muted" style="margin:0 0 22px">Utilisez votre compte personnel. Il ne se partage jamais.</p>
+      {% if form.errors %}<div class="msg error" style="margin-bottom:14px">Identifiant ou mot de passe incorrect.</div>{% endif %}
+      <div class="stack">
+        <div><label for="id_username">Identifiant</label><input type="text" id="id_username" name="username" autocomplete="username" autofocus required></div>
+        <div><label for="id_password">Mot de passe</label><input type="password" id="id_password" name="password" autocomplete="current-password" required></div>
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="btn primary block" type="submit">Se connecter</button>
+      </div>
+    </form>
+  </section>
+</div></body></html>

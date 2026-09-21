@@ -1,0 +1,66 @@
+{% extends "base.html" %}{% load trano %}
+{% block title %}{{ res.code }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ res.guest_name }} <span class="pill {{ res.status }}" style="vertical-align:middle">{{ res.get_status_display }}</span></h1>
+  <p>{{ res.code }} · chambre {{ res.room.number }} · {{ res.formula.name }} · {{ res.get_source_display }}</p></div>
+  <div class="row">
+    {% if res.status == 'accepted' or res.status == 'confirmed' %}{% if hperm.stay_checkin %}<a class="btn primary" href="{% url 'checkin' res.pk %}"><svg class="ic"><use href="#i-key"/></svg>Check-in</a>{% endif %}{% endif %}
+    {% if res.is_active_pre and hperm.reservation_create %}<a class="btn" href="{% url 'reservation_edit' res.pk %}">Modifier</a>{% endif %}
+  </div></div>
+
+<div class="split">
+<div>
+  <div class="card"><div class="card-h"><h2>Séjour</h2>{% if res.status == 'checked_in' %}<span class="pill occupied">Fin dans <span class="cd" data-end="{% epoch res.end_at %}" data-warn="{{ res.hotel.warn_before_end_minutes }}"></span></span>{% endif %}</div>
+    <dl class="kv">
+      <dt>Arrivée prévue</dt><dd>{{ res.start_at|dm }}</dd><dt>Fin prévue</dt><dd>{{ res.end_at|dm }}</dd>
+      <dt>Téléphone</dt><dd>{{ res.phone|default:"—" }}</dd>
+      {% if res.actual_checkin %}<dt>Check-in réel</dt><dd>{{ res.actual_checkin|dm }}</dd>{% endif %}
+      {% if res.actual_checkout %}<dt>Check-out réel</dt><dd>{{ res.actual_checkout|dm }}</dd>{% endif %}
+      <dt>Appel de confirmation</dt><dd>{{ res.get_call_result_display }}{% if res.call_attempts %} · {{ res.call_attempts }} essai{{ res.call_attempts|pluralize }}{% endif %}</dd>
+      {% if res.cancel_reason %}<dt>Motif d'annulation</dt><dd>{{ res.cancel_reason }}</dd>{% endif %}
+      {% if res.overstay_reason %}<dt>Motif au départ</dt><dd>{{ res.overstay_reason }}</dd>{% endif %}
+      {% if res.notes %}<dt>Notes</dt><dd style="white-space:pre-line">{{ res.notes }}</dd>{% endif %}
+    </dl></div>
+
+  {% if invoice %}<div class="card"><div class="card-h"><h2>Facture {{ invoice.number }}</h2><span class="pill {{ invoice.status }}">{{ invoice.status_label }}</span></div>
+    {% for a in allocs %}<div class="total-row"><span>{{ a.line.description }} {% if a.status != 'cancelled' %}<span class="pill {{ a.status }}">{% if a.status == 'paid' %}Payée{% elif a.status == 'partial' %}Partielle{% else %}Non payée{% endif %}</span>{% else %}<span class="pill cancelled">Annulée</span>{% endif %}</span><span>{{ a.line.amount|ar }}</span></div>{% endfor %}
+    <div class="total-row big"><span>Solde à payer</span><span>{{ invoice.balance|ar }}</span></div>
+    <p><a class="btn" href="{% url 'invoice_detail' invoice.pk %}">Encaisser / voir le détail</a></p></div>{% endif %}
+
+  <div class="card"><div class="card-h"><h2>Historique</h2></div>
+    {% for h in history %}<div class="small" style="padding:6px 0;border-bottom:1px solid var(--line)"><b>{{ h.action }}</b> · {{ h.user.display_name|default:"Système" }} · {{ h.created_at|dm }}{% if h.reason %}<br><span class="muted">{{ h.reason }}</span>{% endif %}</div>{% empty %}<span class="muted">Aucune action.</span>{% endfor %}</div>
+</div>
+
+<div>
+  {% if res.status == 'pending' and hperm.reservation_validate %}
+  <div class="card"><div class="card-h"><h2>Demande à traiter</h2></div><p class="muted">Acceptez, puis appelez le client pour confirmer.</p>
+    <form method="post" action="{% url 'reservation_action' res.pk 'accept' %}">{% csrf_token %}<button class="btn primary block">Accepter la demande</button></form></div>{% endif %}
+
+  {% if res.is_active_pre and res.status != 'pending' and hperm.reservation_validate %}
+  <div class="card"><div class="card-h"><h2>Appel de confirmation</h2></div>
+    <p class="small muted">À faire au moins 1 h avant l'arrivée{% if res.phone %} · <b>{{ res.phone }}</b>{% endif %}.</p>
+    <form method="post" action="{% url 'reservation_action' res.pk 'call' %}" class="stack">{% csrf_token %}
+      <select name="result" aria-label="Résultat">{% for v, l in call_choices %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select>
+      <input type="text" name="note" placeholder="Note (facultatif)" aria-label="Note"><button class="btn primary block">Enregistrer le résultat</button></form></div>{% endif %}
+
+  {% if res.status == 'checked_in' %}
+  {% if hperm.stay_extend %}<div class="card"><div class="card-h"><h2>Prolonger</h2></div>
+    <p class="small muted">{% if limit %}Possible jusqu'à {{ limit|hm }} (réservation suivante).{% else %}Aucune réservation juste après.{% endif %} Jamais ajouté automatiquement : à facturer et encaisser.</p>
+    <form method="post" action="{% url 'reservation_action' res.pk 'extend' %}" class="stack">{% csrf_token %}
+      <select name="formula" aria-label="Formule">{% for f in formulas %}<option value="{{ f.id }}">{{ f.name }} · {{ f.price|ar }}</option>{% endfor %}</select>
+      <button class="btn block">Ajouter ce créneau</button></form></div>{% endif %}
+  {% if hperm.stay_checkout %}<div class="card"><div class="card-h"><h2>Départ</h2></div>
+    <form method="post" action="{% url 'reservation_action' res.pk 'checkout' %}" class="stack">{% csrf_token %}
+      {% if needs %}<div class="msg warning">Motif obligatoire : {{ needs|join:" ; " }}.</div><input type="text" name="reason" placeholder="Motif (ex. geste commercial)" required aria-label="Motif">{% endif %}
+      <button class="btn primary block">Check-out maintenant</button>
+      <div class="hint">L'heure est prise par le serveur. Aucun remboursement en cas de départ anticipé.</div></form></div>{% endif %}
+  {% endif %}
+
+  {% if res.is_active_pre and hperm.reservation_cancel %}
+  <div class="card"><div class="card-h"><h2>Annuler</h2></div>
+    <form method="post" action="{% url 'reservation_action' res.pk 'cancel' %}" class="stack" data-confirm="Annuler cette réservation ?">{% csrf_token %}
+      <input type="text" name="reason" placeholder="Justification obligatoire" required aria-label="Justification"><button class="btn danger block">Annuler la réservation</button></form>
+    <form method="post" action="{% url 'reservation_action' res.pk 'noshow' %}" style="margin-top:10px" data-confirm="Marquer comme no-show et libérer la chambre ?">{% csrf_token %}<button class="btn sm ghost block">Client non présenté (no-show)</button></form></div>{% endif %}
+</div>
+</div>
+{% endblock %}
