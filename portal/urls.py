@@ -8,4 +8,5 @@ urlpatterns = [
     path("<slug:slug>/reserver/", views.book, name="portal_book"),
     path("<slug:slug>/suivi/<str:code>/", views.status, name="portal_status"),
     path("<slug:slug>/etat/", views.rooms_fragment, name="portal_rooms"),
+    path("<slug:slug>/ma-chambre/", views.my_stay, name="portal_my_stay"),
 ]

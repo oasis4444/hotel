@@ -16,6 +16,7 @@ urlpatterns = [
     path("reservations/", include("reservations.urls")),
     path("facturation/", include("billing.urls")),
     path("cuisine/", include("kitchen.urls")),
+    path("", include("hotels.urls")),
     path("", include("frontdesk.urls")),
 ]
 if settings.DEBUG:

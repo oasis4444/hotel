@@ -1,0 +1,21 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Nouvel hôtel{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Ajouter un hôtel</h1><p>Vous en devenez automatiquement propriétaire.</p></div>
+<a href="{% url 'hotel_list' %}" class="btn">Retour</a></div>
+<div class="card">
+<form method="post" class="stack">{% csrf_token %}
+  <div><label for="n">Nom de l'hôtel</label><input id="n" type="text" name="name" required></div>
+  <div><label for="t">Slogan (facultatif)</label><input id="t" type="text" name="tagline"></div>
+  <div><label for="a">Adresse</label><input id="a" type="text" name="address"></div>
+  <div><label for="p">Téléphone</label><input id="p" type="text" name="phone"></div>
+  <div><label for="e">Email</label><input id="e" type="email" name="email"></div>
+  <button class="btn primary block" type="submit">Créer l'hôtel</button>
+</form>
+</div>
+<div class="card" style="margin-top:16px"><div class="card-h"><h2>Et ensuite ?</h2></div>
+  <p class="hint">Une fois créé, ajoutez les types de chambre, les chambres et les formules tarifaires
+  depuis l'administration (<a href="/admin/">/admin/</a>), puis affectez vos employés à cet hôtel
+  (Propriétaire, Gérant, Réceptionniste, Cuisinier, Femme de chambre, Maintenance).</p>
+</div>
+{% endblock %}

@@ -8,9 +8,21 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from hotels.models import Formula, Hotel, Room
-from hotels.utils import parse_local
+from hotels.utils import parse_local, to_int
+from kitchen import services as ks
+from kitchen.models import Dish
 from reservations import services as rs
 from reservations.models import Client, Reservation
+
+
+class _AnonRequest:
+    """Requête publique minimale : pas d'utilisateur connecté, mais hôtel + META présents
+    pour que les services (audit, facturation) fonctionnent sans adaptation."""
+
+    def __init__(self, request, hotel):
+        self.user = None
+        self.hotel = hotel
+        self.META = request.META
 
 
 def _hotel(slug):
@@ -103,6 +115,46 @@ def book(request, slug):
             errors.extend(e.messages if isinstance(e, ValidationError) else ["Choix de chambre ou de formule invalide."])
     ctx["errors"] = errors
     return render(request, "portal/home.html", ctx)
+
+
+def _find_stay(hotel, room_number, last_name):
+    return Reservation.objects.filter(
+        hotel=hotel, status=Reservation.Status.CHECKED_IN, room__number=room_number.strip(),
+        guest_name__icontains=last_name.strip(),
+    ).select_related("room").first() if room_number.strip() and last_name.strip() else None
+
+
+def my_stay(request, slug):
+    """Espace client en libre-service : commander à manger ou prolonger son séjour,
+    sans passer par la réception. Vérification légère par numéro de chambre + nom."""
+    hotel = _hotel(slug)
+    room_number = request.POST.get("room_number", request.GET.get("room_number", ""))
+    last_name = request.POST.get("last_name", request.GET.get("last_name", ""))
+    res = _find_stay(hotel, room_number, last_name)
+    ctx = {
+        "hotel": hotel, "res": res, "room_number": room_number, "last_name": last_name,
+        "dishes": Dish.objects.filter(hotel=hotel, is_available=True) if res else [],
+        "formulas": Formula.objects.filter(hotel=hotel, is_active=True) if res else [],
+    }
+    if request.method == "POST" and res:
+        action = request.POST.get("action")
+        req = _AnonRequest(request, hotel)
+        try:
+            if action == "order":
+                items = [(d.pk, request.POST.get(f"qty_{d.pk}", "0")) for d in ctx["dishes"]]
+                ks.create_order(req, reservation_id=res.pk, notes=request.POST.get("notes", "")[:300], items=items)
+                ctx["notice"] = "Commande envoyée en cuisine. Elle sera livrée dans votre chambre."
+            elif action == "extend":
+                formula_id = to_int(request.POST.get("formula"))
+                limit = rs.extend(req, res, formula_id)
+                ctx["notice"] = "Séjour prolongé." + (f" Limite : {timezone.localtime(limit):%d/%m %Hh%M}." if limit else "")
+                res.refresh_from_db()
+                ctx["res"] = res
+        except (ValidationError, Formula.DoesNotExist, Dish.DoesNotExist, ValueError) as e:
+            ctx["errors"] = e.messages if isinstance(e, ValidationError) else ["Choix invalide. Merci de réessayer."]
+    elif request.method == "POST" and not res:
+        ctx["errors"] = ["Aucun séjour en cours trouvé pour cette chambre et ce nom. Vérifiez l'orthographe ou appelez la réception."]
+    return render(request, "portal/my_stay.html", ctx)
 
 
 def status(request, slug, code):

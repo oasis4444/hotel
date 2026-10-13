@@ -56,9 +56,10 @@
       {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}<div class="nav-group">Exploitation</div>{% endif %}
       {% if hperm.cleaning_view %}<a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><svg class="ic"><use href="#i-broom"/></svg>Ménage</a>{% endif %}
       {% if hperm.kitchen_view or hperm.order_create %}<a href="{% url 'kitchen_queue' %}" class="{% if page == 'kitchen' %}on{% endif %}"><svg class="ic"><use href="#i-chef"/></svg>Restauration</a>{% endif %}
-      {% if hperm.reports_view or hperm.audit_view %}<div class="nav-group">Pilotage</div>{% endif %}
+      {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}<div class="nav-group">Pilotage</div>{% endif %}
       {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Rapports</a>{% endif %}
       {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><svg class="ic"><use href="#i-shield"/></svg>Journal d'audit</a>{% endif %}
+      {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-key"/></svg>Mes hôtels</a>{% endif %}
     </nav>
     <div class="side-foot">
       <b>{{ user.display_name }}</b>{{ membership.get_role_display|default:"" }}

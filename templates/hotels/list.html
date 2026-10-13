@@ -1,0 +1,14 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Mes hôtels{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Mes hôtels</h1><p>Chaque hôtel a ses propres chambres, tarifs et équipe.</p></div>
+<a href="{% url 'hotel_new' %}" class="btn primary">Ajouter un hôtel</a></div>
+<div class="card">
+{% for m in memberships %}
+  <div class="row between" style="padding:12px 0;border-bottom:1px solid var(--line)">
+    <div><b>{{ m.hotel.name }}</b><br><span class="small muted">{{ m.hotel.address|default:"—" }} · {{ m.get_role_display }}</span></div>
+    <form method="post" action="{% url 'switch_hotel' m.hotel_id %}">{% csrf_token %}<button class="btn sm">Ouvrir</button></form>
+  </div>
+{% empty %}<div class="empty"><b>Aucun hôtel</b>Créez votre premier hôtel.</div>{% endfor %}
+</div>
+{% endblock %}

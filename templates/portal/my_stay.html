@@ -1,0 +1,60 @@
+{% load static hotelrest %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ hotel.name }} · Mon séjour</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/hotelrest.css' %}"></head><body>
+<header class="pub-top"><div class="pub-wrap"><h1>{{ hotel.name }}</h1><p>Mon séjour : commander à manger, prolonger ma chambre.</p></div></header>
+<div class="pub-body">
+
+<form method="post" class="card">{% csrf_token %}
+  <div class="card-h"><h2>Retrouver mon séjour</h2></div>
+  {% if errors %}<div class="msg error" style="margin-bottom:14px">{% for e in errors %}{{ e }}<br>{% endfor %}</div>{% endif %}
+  {% if notice %}<div class="msg success" style="margin-bottom:14px">{{ notice }}</div>{% endif %}
+  <div class="fields">
+    <div><label for="rn">Numéro de chambre</label><input id="rn" type="text" name="room_number" value="{{ room_number }}" required></div>
+    <div><label for="ln">Votre nom</label><input id="ln" type="text" name="last_name" value="{{ last_name }}" required></div>
+  </div>
+  <p><button class="btn primary" type="submit">Continuer</button></p>
+</form>
+
+{% if res %}
+<div class="card">
+  <div class="card-h"><h2>Chambre {{ res.room.number }} · {{ res.guest_name }}</h2></div>
+  <p class="hint">Séjour en cours jusqu'au {{ res.end_at|dm }}.</p>
+</div>
+
+<form method="post" class="card">{% csrf_token %}
+  <input type="hidden" name="room_number" value="{{ room_number }}"><input type="hidden" name="last_name" value="{{ last_name }}">
+  <input type="hidden" name="action" value="order">
+  <div class="card-h"><h2>Commander à manger</h2></div>
+  {% if dishes %}
+  <div class="stack">
+    {% for d in dishes %}
+    <div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)">
+      <span>{{ d.name }} <span class="hint">· {{ d.price|ar }}</span></span>
+      <input type="number" name="qty_{{ d.pk }}" min="0" value="0" style="width:80px" aria-label="Quantité {{ d.name }}">
+    </div>
+    {% endfor %}
+  </div>
+  <div class="fields" style="margin-top:12px"><div class="wide"><label for="notes">Remarque (facultatif)</label><textarea id="notes" name="notes" rows="2"></textarea></div></div>
+  <p><button class="btn primary" type="submit">Envoyer en cuisine</button></p>
+  <p class="hint">Facturé automatiquement sur votre note de chambre.</p>
+  {% else %}<p class="hint">Aucun plat disponible pour le moment.</p>{% endif %}
+</form>
+
+<form method="post" class="card">{% csrf_token %}
+  <input type="hidden" name="room_number" value="{{ room_number }}"><input type="hidden" name="last_name" value="{{ last_name }}">
+  <input type="hidden" name="action" value="extend">
+  <div class="card-h"><h2>Prolonger mon séjour</h2></div>
+  {% if formulas %}
+  <div class="fields">
+    <div class="wide"><label for="formula">Nouvelle formule</label>
+      <select id="formula" name="formula" required>{% for f in formulas %}<option value="{{ f.id }}">{{ f.name }} · {{ f.price|ar }}</option>{% endfor %}</select>
+    </div>
+  </div>
+  <p><button class="btn primary" type="submit">Demander la prolongation</button></p>
+  <p class="hint">Accordée immédiatement si la chambre reste libre ; sinon un message vous l'indique.</p>
+  {% endif %}
+</form>
+{% endif %}
+
+</div>
+<script src="{% static 'js/hotelrest.js' %}" defer></script></body></html>
