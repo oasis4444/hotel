@@ -1,0 +1,53 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Restauration{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Restauration</h1><p>Commandes en chambre : réception → cuisine → livraison.</p></div>
+  {% if hperm.order_create %}<a href="{% url 'order_new' %}" class="btn primary">Nouvelle commande</a>{% endif %}
+  {% if hperm.kitchen_menu_view %}<a href="{% url 'kitchen_menu' %}" class="btn">Carte</a>{% endif %}
+</div>
+
+<div class="grid g3">
+  <div class="card"><div class="card-h"><h2>Nouvelles</h2></div>
+    {% for o in new %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div class="row between"><b>Ch. {{ o.room.number|default:o.guest_name }}</b><span class="pill pending">Nouvelle</span></div>
+      <div class="small muted">{{ o.created_at|hm }} · {{ o.minutes_open }} min</div>
+      <ul class="small" style="margin:6px 0 8px;padding-left:18px">{% for l in o.lines.all %}<li>{{ l.quantity }}× {{ l.dish_name }}</li>{% endfor %}</ul>
+      {% if o.notes %}<div class="small muted">« {{ o.notes }} »</div>{% endif %}
+      {% if hperm.kitchen_manage %}<form method="post" action="{% url 'order_action' o.pk 'prepare' %}">{% csrf_token %}<button class="btn sm primary">Démarrer en cuisine</button></form>{% endif %}
+    </div>
+    {% empty %}<div class="empty"><b>Aucune commande</b>Les nouvelles commandes apparaissent ici.</div>{% endfor %}
+  </div>
+
+  <div class="card"><div class="card-h"><h2>En préparation</h2></div>
+    {% for o in preparing %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div class="row between"><b>Ch. {{ o.room.number|default:o.guest_name }}</b><span class="pill in_progress">En préparation</span></div>
+      <div class="small muted">{{ o.minutes_open }} min</div>
+      <ul class="small" style="margin:6px 0 8px;padding-left:18px">{% for l in o.lines.all %}<li>{{ l.quantity }}× {{ l.dish_name }}</li>{% endfor %}</ul>
+      {% if hperm.kitchen_manage %}<form method="post" action="{% url 'order_action' o.pk 'ready' %}">{% csrf_token %}<button class="btn sm primary">Marquer prête</button></form>{% endif %}
+    </div>
+    {% empty %}<div class="empty"><b>Rien en cuisine</b></div>{% endfor %}
+  </div>
+
+  <div class="card"><div class="card-h"><h2>Prêtes à livrer</h2></div>
+    {% for o in ready %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div class="row between"><b>Ch. {{ o.room.number|default:o.guest_name }}</b><span class="pill free">Prête</span></div>
+      <div class="small muted">{{ o.minutes_open }} min</div>
+      <ul class="small" style="margin:6px 0 8px;padding-left:18px">{% for l in o.lines.all %}<li>{{ l.quantity }}× {{ l.dish_name }}</li>{% endfor %}</ul>
+      {% if hperm.order_deliver %}<form method="post" action="{% url 'order_action' o.pk 'deliver' %}">{% csrf_token %}<button class="btn sm primary">Livrée en chambre</button></form>{% endif %}
+      {% if hperm.kitchen_manage or hperm.order_create %}
+      <form method="post" action="{% url 'order_action' o.pk 'cancel' %}" class="row" style="margin-top:6px">{% csrf_token %}<input type="text" name="reason" placeholder="Motif d'annulation" style="width:160px" aria-label="Motif"><button class="btn sm danger">Annuler</button></form>
+      {% endif %}
+    </div>
+    {% empty %}<div class="empty"><b>Rien à livrer</b></div>{% endfor %}
+  </div>
+</div>
+
+<div class="card" style="margin-top:18px"><div class="card-h"><h2>Dernières livraisons</h2></div>
+  {% for o in done %}<div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)"><span>Ch. {{ o.room.number|default:o.guest_name }} · {{ o.total|ar }}</span><span class="small muted">{{ o.delivered_at|hm }}</span></div>
+  {% empty %}<div class="empty"><b>Aucune livraison récente</b></div>{% endfor %}
+</div>
+{% endblock %}

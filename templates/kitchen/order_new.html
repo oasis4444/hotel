@@ -1,0 +1,29 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Nouvelle commande{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Nouvelle commande</h1><p>Facturée automatiquement sur la note du séjour choisi.</p></div>
+<a href="{% url 'kitchen_queue' %}" class="btn">Retour</a></div>
+<div class="card">
+<form method="post" class="stack">{% csrf_token %}
+  <div><label for="r">Séjour (chambre en cours)</label>
+    <select id="r" name="reservation">
+      <option value="">— Vente directe (sans chambre) —</option>
+      {% for s in stays %}<option value="{{ s.pk }}">Ch. {{ s.room.number }} · {{ s.guest_name }}</option>{% endfor %}
+    </select>
+  </div>
+  <div><label for="g">Nom du client (si vente directe)</label><input id="g" type="text" name="guest_name" placeholder="Rakoto Jean"></div>
+  <div><label>Plats</label>
+    <div class="stack" style="margin-top:4px">
+    {% for d in dishes %}
+      <div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)">
+        <span>{{ d.name }} <span class="small muted">· {{ d.price|ar }}</span></span>
+        <input type="number" name="qty_{{ d.pk }}" min="0" value="0" style="width:80px" aria-label="Quantité {{ d.name }}">
+      </div>
+    {% empty %}<div class="empty"><b>Carte vide</b>Ajoutez des plats depuis la Carte avant de prendre une commande.</div>{% endfor %}
+    </div>
+  </div>
+  <div><label for="note">Remarque (allergie, cuisson, etc.)</label><input id="note" type="text" name="notes"></div>
+  <button class="btn primary block" type="submit">Envoyer en cuisine</button>
+</form>
+</div>
+{% endblock %}

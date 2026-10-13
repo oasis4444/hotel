@@ -1,4 +1,4 @@
-/* Trano : thème, menu, compte à rebours, temps réel (polling), disponibilité, signature */
+/* Hôtel et Restaurant : thème, menu, compte à rebours, temps réel (polling), disponibilité, signature */
 (function () {
   "use strict";
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -7,14 +7,14 @@
   /* Thème clair/sombre */
   var root = document.documentElement;
   var saved = null;
-  try { saved = localStorage.getItem("trano-theme"); } catch (e) {}
+  try { saved = localStorage.getItem("hotelrest-theme"); } catch (e) {}
   if (saved) root.setAttribute("data-theme", saved);
   document.addEventListener("click", function (e) {
     var t = e.target.closest("[data-toggle-theme]");
     if (t) {
       var next = root.getAttribute("data-theme") === "dark" ? "light" : "dark";
       root.setAttribute("data-theme", next);
-      try { localStorage.setItem("trano-theme", next); } catch (er) {}
+      try { localStorage.setItem("hotelrest-theme", next); } catch (er) {}
     }
     if (e.target.closest("[data-toggle-nav]")) document.body.classList.toggle("nav-open");
     else if (document.body.classList.contains("nav-open") && !e.target.closest(".side")) document.body.classList.remove("nav-open");
@@ -48,7 +48,7 @@
 
   /* Alerte sonore */
   var soundOn = false;
-  try { soundOn = localStorage.getItem("trano-sound") === "1"; } catch (e) {}
+  try { soundOn = localStorage.getItem("hotelrest-sound") === "1"; } catch (e) {}
   var audio = null;
   function beep() {
     try {
@@ -71,7 +71,7 @@
   document.addEventListener("click", function (e) {
     if (e.target.closest("[data-toggle-sound]")) {
       soundOn = !soundOn;
-      try { localStorage.setItem("trano-sound", soundOn ? "1" : "0"); } catch (er) {}
+      try { localStorage.setItem("hotelrest-sound", soundOn ? "1" : "0"); } catch (er) {}
       if (soundOn) beep();
       syncSoundBtn();
     }

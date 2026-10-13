@@ -5,6 +5,6 @@ from .models import User
 
 
 @admin.register(User)
-class TranoUserAdmin(UserAdmin):
+class HotelUserAdmin(UserAdmin):
     fieldsets = UserAdmin.fieldsets + (("Profil", {"fields": ("phone", "language")}),)
     list_display = ("username", "first_name", "last_name", "phone", "is_active")

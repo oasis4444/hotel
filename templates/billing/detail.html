@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load trano %}
+{% extends "base.html" %}{% load hotelrest %}
 {% block title %}Facture {{ inv.number }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>Facture {{ inv.number }} <span class="pill {{ inv.status }}" style="vertical-align:middle">{{ inv.status_label }}</span></h1><p>{{ inv.customer_name }}{% if inv.reservation %} · <a href="{% url 'reservation_detail' inv.reservation.pk %}">{{ inv.reservation.code }}</a>{% endif %}</p></div>

@@ -1,4 +1,4 @@
-{% load static trano %}<!doctype html>
+{% load static hotelrest %}<!doctype html>
 <html lang="fr">
 <head>
   <meta charset="utf-8">
@@ -7,8 +7,8 @@
   <title>{% block title %}{{ APP_NAME }}{% endblock %} · {{ APP_NAME }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/trano.css' %}">
-  <script>try{var t=localStorage.getItem("trano-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+  <link rel="stylesheet" href="{% static 'css/hotelrest.css' %}">
+  <script>try{var t=localStorage.getItem("hotelrest-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
@@ -29,6 +29,7 @@
   <symbol id="i-logout" viewBox="0 0 24 24"><path d="M10 4H5v16h5M15 8l4 4-4 4M19 12H9"/></symbol>
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/></symbol>
+  <symbol id="i-chef" viewBox="0 0 24 24"><path d="M7 21h10M9 21v-7.2M15 21v-7.2"/><path d="M6.5 10.8a3 3 0 0 1-.9-5.9A3.5 3.5 0 0 1 12 3.3a3.5 3.5 0 0 1 6.4 1.6 3 3 0 0 1-.9 5.9z"/></symbol>
 </svg>
 
 <div class="app">
@@ -52,7 +53,9 @@
       {% if hperm.shift_manage %}<a href="{% url 'shift' %}" class="{% if page == 'shift' %}on{% endif %}"><svg class="ic"><use href="#i-cash"/></svg>Mon quart</a>{% endif %}
       {% if hperm.remit_make %}<a href="{% url 'remittances' %}" class="{% if page == 'remittances' %}on{% endif %}"><svg class="ic"><use href="#i-wallet"/></svg>Versements</a>{% endif %}
       {% if hperm.expense_request %}<a href="{% url 'expenses' %}" class="{% if page == 'expenses' %}on{% endif %}"><svg class="ic"><use href="#i-out"/></svg>Dépenses</a>{% endif %}
-      {% if hperm.cleaning_view %}<div class="nav-group">Exploitation</div><a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><svg class="ic"><use href="#i-broom"/></svg>Ménage</a>{% endif %}
+      {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}<div class="nav-group">Exploitation</div>{% endif %}
+      {% if hperm.cleaning_view %}<a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><svg class="ic"><use href="#i-broom"/></svg>Ménage</a>{% endif %}
+      {% if hperm.kitchen_view or hperm.order_create %}<a href="{% url 'kitchen_queue' %}" class="{% if page == 'kitchen' %}on{% endif %}"><svg class="ic"><use href="#i-chef"/></svg>Restauration</a>{% endif %}
       {% if hperm.reports_view or hperm.audit_view %}<div class="nav-group">Pilotage</div>{% endif %}
       {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Rapports</a>{% endif %}
       {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><svg class="ic"><use href="#i-shield"/></svg>Journal d'audit</a>{% endif %}
@@ -81,7 +84,7 @@
     </main>
   </div>
 </div>
-<script src="{% static 'js/trano.js' %}" defer></script>
+<script src="{% static 'js/hotelrest.js' %}" defer></script>
 {% block scripts %}{% endblock %}
 </body>
 </html>

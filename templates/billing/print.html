@@ -1,4 +1,4 @@
-{% load trano %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Facture {{ inv.number }}</title>
+{% load hotelrest %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Facture {{ inv.number }}</title>
 <style>body{font:14px system-ui,sans-serif;color:#111}.sheet{max-width:720px;margin:24px auto;padding:24px}h1{font-size:22px;margin:0}table{width:100%;border-collapse:collapse;margin:16px 0}td,th{padding:8px 4px;border-bottom:1px solid #ddd;text-align:left}td.n,th.n{text-align:right}.tot{font-size:18px;font-weight:700}@media print{.no{display:none}}</style></head>
 <body onload="window.print()"><div class="sheet">
 <h1>{{ inv.hotel.name }}</h1><div>{{ inv.hotel.address }} · {{ inv.hotel.phone }}</div><hr>

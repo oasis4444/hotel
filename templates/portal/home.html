@@ -1,6 +1,6 @@
-{% load static trano %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ hotel.name }} · Réserver</title>
+{% load static hotelrest %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>{{ hotel.name }} · Réserver</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/trano.css' %}"></head><body>
+<link rel="stylesheet" href="{% static 'css/hotelrest.css' %}"></head><body>
 <header class="pub-top"><div class="pub-wrap"><h1>{{ hotel.name }}</h1><p>{{ hotel.tagline|default:"Réservez votre chambre à l'heure, à la journée ou pour la nuit." }}</p>{% if hotel.phone %}<p>{{ hotel.phone }} · {{ hotel.address }}</p>{% endif %}</div></header>
 <div class="pub-body">
   <div class="card"><div class="card-h"><h2>Disponibilité en direct</h2></div>
@@ -21,4 +21,4 @@
     <p class="hint">Aucun paiement en ligne. Votre demande n'est valable qu'une fois confirmée par téléphone.</p>
   </form>
 </div>
-<script src="{% static 'js/trano.js' %}" defer></script></body></html>
+<script src="{% static 'js/hotelrest.js' %}" defer></script></body></html>

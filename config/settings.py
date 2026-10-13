@@ -12,7 +12,7 @@ SECRET_KEY = env("SECRET_KEY", "dev-insecure-key-change-me")
 DEBUG = env("DEBUG", "1") == "1"
 ALLOWED_HOSTS = [h.strip() for h in env("ALLOWED_HOSTS", "*").split(",") if h.strip()]
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", "").split(",") if o.strip()]
-APP_NAME = env("APP_NAME", "Trano")
+APP_NAME = env("APP_NAME", "Hôtel et Restaurant")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     "billing",
     "frontdesk",
     "portal",
+    "kitchen",
 ]
 
 MIDDLEWARE = [

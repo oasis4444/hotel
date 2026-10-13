@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load trano %}
+{% extends "base.html" %}{% load hotelrest %}
 {% block title %}Check-in{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>Check-in · chambre {{ res.room.number }}</h1><p>{{ res.guest_name }} · {{ res.formula.name }} · {{ res.start_at|dm }} → {{ res.end_at|dm }}. L'identité doit être complète.</p></div></div>

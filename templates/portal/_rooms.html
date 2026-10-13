@@ -1,4 +1,4 @@
-{% load trano %}<div class="pub-rooms">{% for t in tiles %}{% with s=t.state %}
+{% load hotelrest %}<div class="pub-rooms">{% for t in tiles %}{% with s=t.state %}
 <div class="tile compact s-{{ s.code }}"><div class="rn" style="font-size:30px">{{ t.room.number }}</div><div class="rt">{{ t.room.room_type.name }}</div>
 <div class="tile-foot"><span class="st">{% if s.code == 'free' %}Libre{% elif s.code == 'occupied' %}Occupée{% elif s.code == 'cleaning' %}Bientôt libre{% elif s.code == 'reserved' %}Réservée{% else %}Indisponible{% endif %}</span>
 <span class="sub">{% if s.code == 'occupied' %}jusqu'à {{ s.until|hm }}{% elif s.code == 'cleaning' %}{{ s.sub }}{% elif s.code == 'free' %}{{ s.sub }}{% endif %}</span></div></div>{% endwith %}{% endfor %}</div>

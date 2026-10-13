@@ -10,14 +10,15 @@ RECEPTION = {
     "stay.checkin", "stay.checkout", "stay.extend", "client.view", "client.edit",
     "billing.view", "billing.pay", "shift.manage", "expense.request", "expense.approve", "expense.pay",
     "remit.make", "cleaning.verify", "cleaning.view", "planning.view",
+    "order.create", "order.deliver", "kitchen.menu_view",
 }
 
 ROLE_PERMS = {
     "owner": {ALL},
     "manager": {ALL},
     "receptionist": RECEPTION,
-    "housekeeper": {"cleaning.view", "cleaning.work", "expense.request"},
-    "cook": {"expense.request"},
+    "housekeeper": {"cleaning.view", "cleaning.work", "expense.request", "order.deliver"},
+    "cook": {"expense.request", "kitchen.view", "kitchen.manage", "kitchen.menu_view", "kitchen.menu_manage"},
     "maintenance": {"expense.request"},
 }
 

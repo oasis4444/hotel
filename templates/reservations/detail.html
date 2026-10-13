@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load trano %}
+{% extends "base.html" %}{% load hotelrest %}
 {% block title %}{{ res.code }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ res.guest_name }} <span class="pill {{ res.status }}" style="vertical-align:middle">{{ res.get_status_display }}</span></h1>

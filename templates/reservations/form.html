@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load trano %}
+{% extends "base.html" %}{% load hotelrest %}
 {% block title %}{% if res %}Modifier{% else %}Nouvelle réservation{% endif %}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{% if res %}Modifier {{ res.code }}{% else %}Nouvelle réservation{% endif %}</h1><p>Les chambres proposées sont celles réellement libres sur le créneau, remise en état comprise.</p></div></div>

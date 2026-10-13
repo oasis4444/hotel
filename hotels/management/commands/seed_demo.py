@@ -8,7 +8,7 @@ from frontdesk.models import Shift
 from hotels.models import Formula, Hotel, Membership, Room, RoomType
 from reservations.models import Client, Reservation, Sequence
 
-PASSWORD = "trano2026"
+PASSWORD = "hotelrest2026"
 
 
 class Command(BaseCommand):
@@ -26,7 +26,8 @@ class Command(BaseCommand):
             return
         accounts = [("proprio", "Owner", "owner", "Propriétaire"), ("gerant", "Gérant", "manager", "Hery"),
                     ("rece1", "Réceptionniste", "receptionist", "Miora"), ("rece2", "Réceptionniste", "receptionist", "Tsiry"),
-                    ("menage1", "Femme de chambre", "housekeeper", "Voahangy")]
+                    ("menage1", "Femme de chambre", "housekeeper", "Voahangy"),
+                    ("cuisto1", "Cuisinier", "cook", "Nivo")]
         users = {}
         for username, _label, role, first in accounts:
             u, _ = U.objects.get_or_create(username=username, defaults={"first_name": first})
@@ -74,6 +75,24 @@ class Command(BaseCommand):
         rooms[5].set_status("dirty")
         CleaningTask.objects.create(hotel=hotel, room=rooms[5], urgent=False)
         rooms[9].set_status("maintenance")
+
+        # Carte du restaurant + une commande de démo
+        from kitchen.models import Dish, Order, OrderLine
+
+        d1 = Dish.objects.create(hotel=hotel, name="Romazava", category="main", price=12000, sort_order=1)
+        d2 = Dish.objects.create(hotel=hotel, name="Ravitoto porc", category="main", price=12000, sort_order=2)
+        Dish.objects.create(hotel=hotel, name="Salade de fruits", category="dessert", price=6000, sort_order=1)
+        Dish.objects.create(hotel=hotel, name="THB", category="drink", price=5000, sort_order=1)
+        Dish.objects.create(hotel=hotel, name="Eau minérale", category="drink", price=3000, sort_order=2)
+        Dish.objects.create(hotel=hotel, name="Mofo gasy", category="breakfast", price=3000, sort_order=1)
+
+        demo_res = Reservation.objects.filter(hotel=hotel, status="checked_in").first()
+        if demo_res:
+            order = Order.objects.create(hotel=hotel, reservation=demo_res, room=demo_res.room,
+                                          guest_name=demo_res.guest_name, created_by=users["rece1"])
+            OrderLine.objects.create(order=order, dish=d1, dish_name=d1.name, quantity=1, unit_price=d1.price)
+            OrderLine.objects.create(order=order, dish=d2, dish_name=d2.name, quantity=1, unit_price=d2.price)
+
         self.stdout.write(self.style.SUCCESS(
-            "Démo créée. Comptes : proprio, gerant, rece1, rece2, menage1 — mot de passe : " + PASSWORD))
+            "Démo créée. Comptes : proprio, gerant, rece1, rece2, menage1, cuisto1 — mot de passe : " + PASSWORD))
         self.stdout.write(f"Portail public : /h/{hotel.slug}/")
