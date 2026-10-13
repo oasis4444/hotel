@@ -1,0 +1,26 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Paramètres de l'hôtel{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Paramètres de l'hôtel</h1><p>Logo, couleur et coordonnées de {{ hotel.name }}.</p></div></div>
+<div class="split">
+<form method="post" enctype="multipart/form-data" class="card stack">{% csrf_token %}
+  <div><label for="n">Nom</label><input id="n" type="text" name="name" value="{{ hotel.name }}" required></div>
+  <div><label for="t">Slogan</label><input id="t" type="text" name="tagline" value="{{ hotel.tagline }}"></div>
+  <div><label for="a">Adresse</label><input id="a" type="text" name="address" value="{{ hotel.address }}"></div>
+  <div><label for="p">Téléphone</label><input id="p" type="text" name="phone" value="{{ hotel.phone }}"></div>
+  <div><label for="e">Email</label><input id="e" type="email" name="email" value="{{ hotel.email }}"></div>
+  <div><label for="c">Couleur principale de l'interface</label>
+    <div class="row"><input id="c" type="color" name="theme_color" value="{{ hotel.theme_color|default:'#0B7A86' }}" style="width:60px;height:42px;padding:2px"><span class="small muted">Appliquée à tout le logiciel pour cet hôtel.</span></div>
+  </div>
+  <div><label for="l">Logo</label>
+    {% if hotel.logo %}<div class="row" style="margin-bottom:8px"><img src="{{ hotel.logo.url }}" alt="" style="width:48px;height:48px;border-radius:11px;object-fit:cover">
+      <label class="small"><input type="checkbox" name="remove_logo" value="1"> Retirer le logo actuel</label></div>{% endif %}
+    <input id="l" type="file" name="logo" accept="image/*">
+  </div>
+  <button class="btn primary block" type="submit">Enregistrer</button>
+</form>
+<div class="card"><div class="card-h"><h2>Aperçu</h2></div>
+  <p class="hint">Le logo apparaît dans le menu latéral de l'application. La couleur remplace le bleu-lagon par défaut sur les boutons, liens et accents, pour tous les comptes de cet hôtel.</p>
+</div>
+</div>
+{% endblock %}

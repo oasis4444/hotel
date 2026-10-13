@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Tableau de bord{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Tableau de bord</h1><p>{{ hotel.name }} · vue d'ensemble du jour.</p></div></div>
+
+<div class="grid g4" style="margin-bottom:20px">
+  <div class="card kpi"><b>{{ occupancy }}%</b><span>Taux d'occupation ({{ counts.occupied|default:0 }}/{{ total_rooms }} chambres)</span></div>
+  <div class="card kpi"><b>{{ revenue_today|ar }}</b><span>Encaissé aujourd'hui · {{ pay_count_today }} paiement{{ pay_count_today|pluralize }}</span></div>
+  <div class="card kpi"><b>{{ kitchen_open }}</b><span>Commande{{ kitchen_open|pluralize }} en cuisine</span></div>
+  <div class="card kpi"><b>{{ open_shifts.count }}</b><span>Quart{{ open_shifts.count|pluralize }} ouvert{{ open_shifts.count|pluralize }}</span></div>
+</div>
+
+<div class="split">
+  <div class="card">
+    <div class="card-h"><h2>Chambres</h2><a href="{% url 'board' %}" class="btn sm">Voir le tableau</a></div>
+    <div class="row" style="flex-wrap:wrap;gap:10px">
+      <span class="pill free">{{ counts.available|default:0 }} libres</span>
+      <span class="pill occupied">{{ counts.occupied|default:0 }} occupées</span>
+      <span class="pill dirty">{{ counts.dirty|default:0 }} à nettoyer</span>
+      <span class="pill cleaning">{{ counts.cleaning|default:0 }} en nettoyage</span>
+      <span class="pill maintenance">{{ counts.maintenance|default:0 }} maintenance</span>
+    </div>
+    <div class="card-h" style="margin-top:22px"><h2>Arrivées attendues aujourd'hui</h2></div>
+    {% for r in arrivals_today %}
+      <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+        <span>{{ r.guest_name }} · ch. {{ r.room.number }}</span><span class="small muted">{{ r.start_at|hm }}</span>
+      </div>
+    {% empty %}<div class="empty"><b>Aucune arrivée prévue</b></div>{% endfor %}
+  </div>
+
+  <div class="card">
+    <div class="card-h"><h2>À surveiller</h2></div>
+    <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span>Dépenses en attente d'accord</span><b>{{ pending_expenses }}</b>
+    </div>
+    <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span>Quarts ouverts</span><b>{{ open_shifts.count }}</b>
+    </div>
+    {% for s in open_shifts %}
+      <div class="small muted" style="padding:4px 0">{{ s.user.display_name|default:s.user.username }} · depuis {{ s.opened_at|hm }}</div>
+    {% endfor %}
+    <div class="card-h" style="margin-top:18px"><h2>Raccourcis</h2></div>
+    <div class="row" style="flex-wrap:wrap">
+      <a href="{% url 'reports' %}" class="btn sm">Rapports détaillés</a>
+      <a href="{% url 'kitchen_queue' %}" class="btn sm">Restauration</a>
+      <a href="{% url 'expenses' %}" class="btn sm">Dépenses</a>
+      <a href="{% url 'team' %}" class="btn sm">Équipe</a>
+      <a href="{% url 'hotel_settings' %}" class="btn sm">Paramètres</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -110,6 +110,18 @@ def menu(request):
 
 
 @perm_required("kitchen.menu_view")
+def menu_print(request):
+    hotel = request.hotel
+    dishes = list(Dish.objects.filter(hotel=hotel, is_available=True).order_by("category", "sort_order", "name"))
+    grouped = []
+    for cat, label in Dish.Category.choices:
+        items = [d for d in dishes if d.category == cat]
+        if items:
+            grouped.append((label, items))
+    return render(request, "kitchen/menu_print.html", {"hotel": hotel, "grouped": grouped})
+
+
+@perm_required("kitchen.menu_view")
 @require_POST
 def menu_action(request, pk, action):
     if not has_perm(request.membership, "kitchen.menu_manage"):

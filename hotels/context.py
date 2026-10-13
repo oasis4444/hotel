@@ -1,6 +1,7 @@
 from django.conf import settings
 
 from .permissions import PermProxy
+from .utils import darken_hex
 
 
 def hotel_context(request):
@@ -12,6 +13,7 @@ def hotel_context(request):
         from frontdesk.models import Shift
 
         open_shift = Shift.objects.filter(hotel=hotel, user=user, closed_at__isnull=True).first()
+    theme_color = (hotel.theme_color if hotel and hotel.theme_color else "") or ""
     return {
         "current_hotel": hotel,
         "membership": membership,
@@ -19,4 +21,6 @@ def hotel_context(request):
         "hperm": PermProxy(membership),
         "APP_NAME": settings.APP_NAME,
         "open_shift": open_shift,
+        "theme_color": theme_color,
+        "theme_color_dark": darken_hex(theme_color) if theme_color else "",
     }

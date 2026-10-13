@@ -2,6 +2,7 @@
 {% block title %}Carte{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>Carte du restaurant</h1><p>Plats et boissons proposés en chambre.</p></div>
+<a href="{% url 'kitchen_menu_print' %}" class="btn" target="_blank" rel="noopener">Imprimer la carte</a>
 <a href="{% url 'kitchen_queue' %}" class="btn">Retour aux commandes</a></div>
 <div class="split">
 <div class="card"><div class="card-h"><h2>Plats</h2></div>

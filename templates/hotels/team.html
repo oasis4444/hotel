@@ -1,0 +1,31 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Équipe{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Équipe</h1><p>Comptes ayant accès à {{ current_hotel.name }}.</p></div></div>
+<div class="split">
+<div class="card">
+{% for m in members %}
+  <div class="row between" style="padding:12px 0;border-bottom:1px solid var(--line)">
+    <div><b>{{ m.user.display_name|default:m.user.username }}</b><br><span class="small muted">{{ m.user.username }}</span></div>
+    <div class="right">
+      <form method="post" action="{% url 'team_action' m.pk 'role' %}" class="row">{% csrf_token %}
+        <select name="role" onchange="this.form.submit()">{% for v, l in roles %}<option value="{{ v }}" {% if v == m.role %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+      </form>
+      <form method="post" action="{% url 'team_action' m.pk 'toggle' %}" style="margin-top:6px">{% csrf_token %}
+        <button class="btn sm {% if not m.is_active %}primary{% endif %}">{% if m.is_active %}Actif{% else %}Désactivé{% endif %}</button>
+      </form>
+    </div>
+  </div>
+{% empty %}<div class="empty"><b>Équipe vide</b></div>{% endfor %}
+</div>
+<div class="card"><div class="card-h"><h2>Ajouter une personne</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="u">Identifiant</label><input id="u" type="text" name="username" required></div>
+    <div><label for="fn">Prénom</label><input id="fn" type="text" name="first_name"></div>
+    <div><label for="r">Rôle</label><select id="r" name="role">{% for v, l in roles %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="pw">Mot de passe</label><input id="pw" type="password" name="password"><div class="hint">Laissez vide si l'identifiant existe déjà (accès ajouté à un compte existant).</div></div>
+    <button class="btn primary block" type="submit">Ajouter à l'équipe</button>
+  </form>
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% load hotelrest %}<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Carte · {{ hotel.name }}</title>
+<style>
+body{font:14px/1.5 Georgia,serif;color:#111}
+.sheet{max-width:640px;margin:24px auto;padding:24px}
+h1{font-size:26px;margin:0 0 4px;text-align:center;font-family:system-ui,sans-serif}
+.sub{text-align:center;color:#666;margin-bottom:24px}
+h2{font-size:15px;text-transform:uppercase;letter-spacing:.08em;color:#0B7A86;border-bottom:1px solid #ddd;padding-bottom:6px;margin:26px 0 10px}
+.item{display:flex;justify-content:space-between;gap:12px;padding:6px 0}
+.item .d{color:#666;font-size:12.5px}
+.price{white-space:nowrap;font-weight:600}
+@media print{.no{display:none}}
+</style></head>
+<body onload="window.print()"><div class="sheet">
+<h1>{{ hotel.name }}</h1><div class="sub">Carte du restaurant{% if hotel.phone %} · {{ hotel.phone }}{% endif %}</div>
+{% for cat, items in grouped %}
+<h2>{{ cat }}</h2>
+{% for d in items %}
+<div class="item"><div><div>{{ d.name }}</div>{% if d.description %}<div class="d">{{ d.description }}</div>{% endif %}</div><div class="price">{{ d.price|ar }}</div></div>
+{% endfor %}
+{% empty %}{% endfor %}
+</div></body></html>

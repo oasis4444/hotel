@@ -13,6 +13,8 @@ class Hotel(models.Model):
     address = models.CharField("Adresse", max_length=200, blank=True)
     phone = models.CharField("Téléphone", max_length=40, blank=True)
     email = models.EmailField("Email", blank=True)
+    logo = models.ImageField("Logo", upload_to="logos/", null=True, blank=True)
+    theme_color = models.CharField("Couleur principale", max_length=7, blank=True, help_text="Code hexadécimal, ex. #0B7A86")
 
     turnaround_minutes = models.PositiveSmallIntegerField("Remise en état entre deux séjours (min)", default=10)
     cleaning_alert_minutes = models.PositiveSmallIntegerField("Alerte si nettoyage dépasse (min)", default=15)

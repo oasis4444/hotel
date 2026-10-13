@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/hotelrest.css' %}">
+  {% if theme_color %}<style>:root{--lagoon:{{ theme_color }};--lagoon-d:{{ theme_color_dark }};}:root[data-theme="dark"]{--lagoon:{{ theme_color }};--lagoon-d:{{ theme_color_dark }};}</style>{% endif %}
   <script>try{var t=localStorage.getItem("hotelrest-theme");if(t)document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
 </head>
 <body>
@@ -34,7 +35,7 @@
 
 <div class="app">
   <aside class="side" aria-label="Navigation principale">
-    <div class="brand"><span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>{{ APP_NAME }}</div>
+    <div class="brand">{% if current_hotel.logo %}<span class="brand-mark" style="padding:0;overflow:hidden"><img src="{{ current_hotel.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover"></span>{% else %}<span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>{% endif %}{{ APP_NAME }}</div>
     {% if memberships|length > 1 %}
     <div class="hotel-switch">
       <label class="sr" for="hs" style="color:var(--side-dim)">Hôtel</label>
@@ -44,6 +45,7 @@
     </div>
     {% elif current_hotel %}<div class="hotel-name"><b>{{ current_hotel.name }}</b>{{ membership.get_role_display }}</div>{% endif %}
     <nav class="nav">
+      {% if hperm.dashboard_view %}<a href="{% url 'dashboard' %}" class="{% if page == 'dashboard' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Tableau de bord</a>{% endif %}
       {% if hperm.board_view %}<a href="{% url 'board' %}" class="{% if page == 'board' %}on{% endif %}"><svg class="ic"><use href="#i-board"/></svg>Chambres</a>{% endif %}
       {% if hperm.planning_view %}<a href="{% url 'planning' %}" class="{% if page == 'planning' %}on{% endif %}"><svg class="ic"><use href="#i-plan"/></svg>Planning</a>{% endif %}
       {% if hperm.reservation_view %}<a href="{% url 'reservations' %}" class="{% if page == 'reservations' %}on{% endif %}"><svg class="ic"><use href="#i-book"/></svg>Réservations</a>{% endif %}
@@ -59,7 +61,9 @@
       {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}<div class="nav-group">Pilotage</div>{% endif %}
       {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Rapports</a>{% endif %}
       {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><svg class="ic"><use href="#i-shield"/></svg>Journal d'audit</a>{% endif %}
-      {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-key"/></svg>Mes hôtels</a>{% endif %}
+      {% if hperm.hotel_manage %}<a href="{% url 'team' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-users"/></svg>Équipe</a>{% endif %}
+      {% if hperm.hotel_manage %}<a href="{% url 'hotel_settings' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-key"/></svg>Paramètres hôtel</a>{% endif %}
+      {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-plus"/></svg>Mes hôtels</a>{% endif %}
     </nav>
     <div class="side-foot">
       <b>{{ user.display_name }}</b>{{ membership.get_role_display|default:"" }}
