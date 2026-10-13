@@ -7,6 +7,28 @@
   {% if hperm.kitchen_menu_view %}<a href="{% url 'kitchen_menu' %}" class="btn">Carte</a>{% endif %}
 </div>
 
+{% if requested %}
+<div class="card" style="margin-bottom:18px;border-color:var(--resv)">
+  <div class="card-h"><h2>Demandées par le client · à valider</h2></div>
+  <div class="grid g3">
+  {% for o in requested %}
+    <div style="padding:12px 0;border-bottom:1px solid var(--line)">
+      <div class="row between"><b>Ch. {{ o.room.number|default:o.guest_name }}</b><span class="pill reserved">Demandée</span></div>
+      <div class="small muted">{{ o.created_at|hm }} · {{ o.minutes_open }} min</div>
+      <ul class="small" style="margin:6px 0 8px;padding-left:18px">{% for l in o.lines.all %}<li>{{ l.quantity }}× {{ l.dish_name }}</li>{% endfor %}</ul>
+      {% if o.notes %}<div class="small muted">« {{ o.notes }} »</div>{% endif %}
+      {% if hperm.order_create %}
+      <div class="row">
+        <form method="post" action="{% url 'order_action' o.pk 'confirm' %}">{% csrf_token %}<button class="btn sm primary">Valider → cuisine</button></form>
+        <form method="post" action="{% url 'order_action' o.pk 'cancel' %}" class="row">{% csrf_token %}<input type="text" name="reason" placeholder="Motif de refus" style="width:140px" aria-label="Motif"><button class="btn sm danger">Refuser</button></form>
+      </div>
+      {% endif %}
+    </div>
+  {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <div class="grid g3">
   <div class="card"><div class="card-h"><h2>Nouvelles</h2></div>
     {% for o in new %}

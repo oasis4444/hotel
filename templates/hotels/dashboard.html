@@ -1,13 +1,29 @@
 {% extends "base.html" %}{% load hotelrest %}
 {% block title %}Tableau de bord{% endblock %}
 {% block content %}
-<div class="page-head"><div><h1>Tableau de bord</h1><p>{{ hotel.name }} · vue d'ensemble du jour.</p></div></div>
+<div class="page-head"><div><h1>Tableau de bord</h1><p>{{ hotel.name }} · vue d'ensemble.</p></div></div>
+
+<div class="card" style="margin-bottom:20px">
+  <form method="get" class="row" style="flex-wrap:wrap;align-items:flex-end;gap:16px">
+    {% if memberships|length > 1 %}
+    <div><label for="dh" class="small muted">Hôtel</label><br>
+      <select id="dh" onchange="location.href='/hotel/'+this.value+'/?next=dashboard'">
+        {% for m in memberships %}<option value="{{ m.hotel_id }}" {% if m.hotel_id == hotel.id %}selected{% endif %}>{{ m.hotel.name }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div><label for="d1" class="small muted">Du</label><br><input id="d1" type="date" name="from" value="{{ d1|date:'Y-m-d' }}"></div>
+    <div><label for="d2" class="small muted">Au</label><br><input id="d2" type="date" name="to" value="{{ d2|date:'Y-m-d' }}"></div>
+    <button class="btn sm primary" type="submit">Filtrer</button>
+    {% if not is_today_only %}<a href="{% url 'dashboard' %}" class="btn sm">Revenir à aujourd'hui</a>{% endif %}
+  </form>
+</div>
 
 <div class="grid g4" style="margin-bottom:20px">
-  <div class="card kpi"><b>{{ occupancy }}%</b><span>Taux d'occupation ({{ counts.occupied|default:0 }}/{{ total_rooms }} chambres)</span></div>
-  <div class="card kpi"><b>{{ revenue_today|ar }}</b><span>Encaissé aujourd'hui · {{ pay_count_today }} paiement{{ pay_count_today|pluralize }}</span></div>
-  <div class="card kpi"><b>{{ kitchen_open }}</b><span>Commande{{ kitchen_open|pluralize }} en cuisine</span></div>
-  <div class="card kpi"><b>{{ open_shifts.count }}</b><span>Quart{{ open_shifts.count|pluralize }} ouvert{{ open_shifts.count|pluralize }}</span></div>
+  <div class="card kpi"><b>{{ occupancy }}%</b><span>Taux d'occupation en direct ({{ counts.occupied|default:0 }}/{{ total_rooms }} chambres)</span></div>
+  <div class="card kpi"><b>{{ revenue_period|ar }}</b><span>Encaissé{% if is_today_only %} aujourd'hui{% else %} sur la période{% endif %} · {{ pay_count_period }} paiement{{ pay_count_period|pluralize }}</span></div>
+  <div class="card kpi"><b>{{ kitchen_open }}</b><span>Commande{{ kitchen_open|pluralize }} en cuisine en direct</span></div>
+  <div class="card kpi"><b>{{ open_shifts.count }}</b><span>Quart{{ open_shifts.count|pluralize }} ouvert{{ open_shifts.count|pluralize }} en direct</span></div>
 </div>
 
 <div class="split">
@@ -20,8 +36,8 @@
       <span class="pill cleaning">{{ counts.cleaning|default:0 }} en nettoyage</span>
       <span class="pill maintenance">{{ counts.maintenance|default:0 }} maintenance</span>
     </div>
-    <div class="card-h" style="margin-top:22px"><h2>Arrivées attendues aujourd'hui</h2></div>
-    {% for r in arrivals_today %}
+    <div class="card-h" style="margin-top:22px"><h2>Arrivées attendues{% if is_today_only %} aujourd'hui{% else %} sur la période{% endif %}</h2></div>
+    {% for r in arrivals %}
       <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
         <span>{{ r.guest_name }} · ch. {{ r.room.number }}</span><span class="small muted">{{ r.start_at|hm }}</span>
       </div>

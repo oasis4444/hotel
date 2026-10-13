@@ -1,5 +1,7 @@
 from django import forms
 
+from hotels.utils import compress_image
+
 from .models import Client
 
 
@@ -14,3 +16,9 @@ class ClientForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"rows": 2}),
             "id_photo": forms.ClearableFileInput(attrs={"accept": "image/*", "capture": "environment"}),
         }
+
+    def clean_id_photo(self):
+        photo = self.cleaned_data.get("id_photo")
+        if photo and hasattr(photo, "content_type"):  # nouveau fichier envoyé (pas un FieldFile existant)
+            return compress_image(photo, max_side=1600, quality=80)
+        return photo

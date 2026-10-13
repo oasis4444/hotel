@@ -23,6 +23,7 @@ def queue(request):
     ).select_related("room", "reservation").prefetch_related("lines")
     done = Order.objects.filter(hotel=hotel, status=Order.Status.DELIVERED).select_related("room")[:15]
     return render(request, "kitchen/queue.html", {
+        "requested": qs.filter(status=Order.Status.REQUESTED),
         "new": qs.filter(status=Order.Status.NEW),
         "preparing": qs.filter(status=Order.Status.PREPARING),
         "ready": qs.filter(status=Order.Status.READY),
@@ -37,7 +38,11 @@ def order_action(request, pk, action):
     order = get_object_or_404(Order, pk=pk, hotel=request.hotel)
     m = request.membership
     try:
-        if action == "prepare":
+        if action == "confirm":
+            if not has_perm(m, "order.create"):
+                raise ValidationError("Réservé à la réception.")
+            ks.confirm_order(request, order)
+        elif action == "prepare":
             if not has_perm(m, "kitchen.manage"):
                 raise ValidationError("Réservé à la cuisine.")
             ks.advance(request, order, Order.Status.PREPARING)

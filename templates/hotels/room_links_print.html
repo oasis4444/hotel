@@ -1,0 +1,25 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Liens clients · {{ hotel.name }}</title>
+<style>
+body{font:14px system-ui,sans-serif;color:#111;margin:0}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0}
+.card{padding:28px;border:1px dashed #ccc;text-align:center;page-break-inside:avoid}
+h1{font-size:15px;color:#666;font-weight:600;margin:0 0 4px}
+.room{font-size:38px;font-weight:800;margin:0 0 10px}
+img{display:block;margin:0 auto 10px}
+.url{font-size:11px;color:#888;word-break:break-all;max-width:220px;margin:0 auto}
+.no{display:none}
+@media screen{.no{display:block;text-align:center;padding:16px}}
+</style></head>
+<body>
+<div class="no"><button onclick="window.print()">Imprimer</button></div>
+<div class="grid">
+{% for l in links %}
+<div class="card">
+  <h1>{{ hotel.name }}</h1>
+  <div class="room">Chambre {{ l.room.number }}</div>
+  <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data={{ l.url|urlencode }}" width="180" height="180" alt="QR">
+  <div class="url">Scannez pour commander ou prolonger votre séjour</div>
+</div>
+{% endfor %}
+</div>
+</body></html>

@@ -3,6 +3,7 @@
 {% block content %}
 <div class="page-head">
   <div><h1>Chambres</h1><p id="live-status" class="small muted">Mise à jour automatique toutes les 8 secondes</p></div>
+  {% if hperm.board_view %}<a class="btn" href="{% url 'room_links_print' %}" target="_blank" rel="noopener">Liens clients par chambre</a>{% endif %}
   {% if hperm.reservation_create %}<a class="btn primary" href="{% url 'reservation_new' %}"><svg class="ic"><use href="#i-plus"/></svg>Nouvelle réservation</a>{% endif %}
 </div>
 <div id="live" data-url="{% url 'live' %}">{% include "frontdesk/_live.html" %}</div>

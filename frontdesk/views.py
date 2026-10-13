@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 
 from audit.models import AuditLog
 from hotels.permissions import has_perm, perm_required
-from hotels.utils import to_int
+from hotels.utils import compress_image, to_int
 from reservations import services as rs
 from reservations.models import Reservation
 
@@ -204,7 +204,8 @@ def expense_action(request, pk, action):
         elif action == "settle":
             if not has_perm(m, "expense.pay"):
                 raise ValidationError("Action réservée à la réception.")
-            fs.expense_settle(request, exp, to_int(request.POST.get("actual")), request.FILES.get("photo"))
+            photo = compress_image(request.FILES.get("photo"), max_side=1600, quality=78)
+            fs.expense_settle(request, exp, to_int(request.POST.get("actual")), photo)
         messages.success(request, "Dépense mise à jour.")
     except ValidationError as e:
         _fail(request, e)
@@ -255,4 +256,7 @@ def audit_list(request):
 def switch_hotel(request, pk):
     if any(m.hotel_id == pk for m in getattr(request, "memberships", [])):
         request.session["hotel_id"] = pk
+    nxt = request.GET.get("next") or request.POST.get("next")
+    if nxt == "dashboard":
+        return redirect("dashboard")
     return redirect("board")

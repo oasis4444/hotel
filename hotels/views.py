@@ -13,6 +13,7 @@ from reservations import services as rs
 
 from .models import Hotel, Membership
 from .permissions import perm_required
+from .utils import compress_image
 
 
 @perm_required("dashboard.view")
@@ -24,8 +25,18 @@ def dashboard(request):
 
     hotel = request.hotel
     now = timezone.now()
-    today_start = timezone.make_aware(datetime.combine(timezone.localdate(), datetime.min.time()))
-    today_end = today_start + timedelta(days=1)
+    today = timezone.localdate()
+    try:
+        d1 = datetime.strptime(request.GET.get("from", ""), "%Y-%m-%d").date()
+    except ValueError:
+        d1 = today
+    try:
+        d2 = datetime.strptime(request.GET.get("to", ""), "%Y-%m-%d").date()
+    except ValueError:
+        d2 = today
+    period_start = timezone.make_aware(datetime.combine(d1, datetime.min.time()))
+    period_end = timezone.make_aware(datetime.combine(d2, datetime.min.time())) + timedelta(days=1)
+    is_today_only = d1 == today and d2 == today
 
     rs.tick(hotel)
     tiles = rs.rooms_with_state(hotel, now)
@@ -35,23 +46,37 @@ def dashboard(request):
     total_rooms = len(tiles) or 1
     occupancy = int(counts.get("occupied", 0) / total_rooms * 100)
 
-    pays_today = Payment.objects.filter(invoice__hotel=hotel, created_at__gte=today_start, created_at__lt=today_end)
-    revenue_today = sum((-p.amount if p.kind == Payment.Kind.REFUND else p.amount) for p in pays_today)
+    pays = Payment.objects.filter(invoice__hotel=hotel, created_at__gte=period_start, created_at__lt=period_end)
+    revenue_period = sum((-p.amount if p.kind == Payment.Kind.REFUND else p.amount) for p in pays)
 
-    arrivals_today = Reservation.objects.filter(
-        hotel=hotel, start_at__gte=today_start, start_at__lt=today_end,
+    arrivals = Reservation.objects.filter(
+        hotel=hotel, start_at__gte=period_start, start_at__lt=period_end,
         status__in=[Reservation.Status.ACCEPTED, Reservation.Status.CONFIRMED],
     ).select_related("room").order_by("start_at")
 
     return render(request, "hotels/dashboard.html", {
         "hotel": hotel, "tiles": tiles, "counts": counts, "occupancy": occupancy, "total_rooms": total_rooms,
-        "revenue_today": revenue_today, "pay_count_today": pays_today.count(),
+        "d1": d1, "d2": d2, "is_today_only": is_today_only,
+        "revenue_period": revenue_period, "pay_count_period": pays.count(),
         "open_shifts": Shift.objects.filter(hotel=hotel, closed_at__isnull=True).select_related("user"),
         "pending_expenses": Expense.objects.filter(hotel=hotel, status=Expense.Status.REQUESTED).count(),
-        "kitchen_open": Order.objects.filter(hotel=hotel, status__in=[Order.Status.NEW, Order.Status.PREPARING, Order.Status.READY]).count(),
-        "arrivals_today": arrivals_today[:10],
+        "kitchen_open": Order.objects.filter(hotel=hotel, status__in=[
+            Order.Status.REQUESTED, Order.Status.NEW, Order.Status.PREPARING, Order.Status.READY]).count(),
+        "arrivals": arrivals[:15],
+        "memberships": request.memberships,
         "page": "dashboard",
     })
+
+
+@perm_required("board.view")
+def room_links_print(request):
+    from .models import Room
+
+    hotel = request.hotel
+    base = request.build_absolute_uri(f"/h/{hotel.slug}/ma-chambre/")
+    rooms = Room.objects.filter(hotel=hotel, is_active=True).order_by("number")
+    links = [{"room": r, "url": f"{base}?room_number={r.number}"} for r in rooms]
+    return render(request, "hotels/room_links_print.html", {"hotel": hotel, "links": links})
 
 
 @perm_required("hotel.manage")
@@ -117,7 +142,7 @@ def hotel_settings(request):
             if request.POST.get("remove_logo"):
                 hotel.logo = None
             if request.FILES.get("logo"):
-                hotel.logo = request.FILES["logo"]
+                hotel.logo = compress_image(request.FILES["logo"], max_side=600, quality=85)
             hotel.save()
             record(request, "hotel.settings.update", hotel, before=before,
                    after={"name": hotel.name, "theme_color": hotel.theme_color}, hotel=hotel)

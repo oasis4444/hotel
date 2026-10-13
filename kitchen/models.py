@@ -36,6 +36,7 @@ class Order(models.Model):
     """Commande restauration : réception (ou client) → cuisine → livraison en chambre."""
 
     class Status(models.TextChoices):
+        REQUESTED = "requested", "Demandée par le client (à valider)"
         NEW = "new", "Nouvelle"
         PREPARING = "preparing", "En préparation"
         READY = "ready", "Prête"

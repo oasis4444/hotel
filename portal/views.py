@@ -131,9 +131,15 @@ def my_stay(request, slug):
     room_number = request.POST.get("room_number", request.GET.get("room_number", ""))
     last_name = request.POST.get("last_name", request.GET.get("last_name", ""))
     res = _find_stay(hotel, room_number, last_name)
+    dishes = list(Dish.objects.filter(hotel=hotel, is_available=True).order_by("category", "sort_order", "name")) if res else []
+    grouped_dishes = []
+    for cat, label in Dish.Category.choices:
+        items = [d for d in dishes if d.category == cat]
+        if items:
+            grouped_dishes.append((label, items))
     ctx = {
         "hotel": hotel, "res": res, "room_number": room_number, "last_name": last_name,
-        "dishes": Dish.objects.filter(hotel=hotel, is_available=True) if res else [],
+        "dishes": dishes, "grouped_dishes": grouped_dishes,
         "formulas": Formula.objects.filter(hotel=hotel, is_active=True) if res else [],
     }
     if request.method == "POST" and res:
@@ -142,8 +148,8 @@ def my_stay(request, slug):
         try:
             if action == "order":
                 items = [(d.pk, request.POST.get(f"qty_{d.pk}", "0")) for d in ctx["dishes"]]
-                ks.create_order(req, reservation_id=res.pk, notes=request.POST.get("notes", "")[:300], items=items)
-                ctx["notice"] = "Commande envoyée en cuisine. Elle sera livrée dans votre chambre."
+                ks.create_order(req, reservation_id=res.pk, notes=request.POST.get("notes", "")[:300], items=items, self_service=True)
+                ctx["notice"] = "Commande envoyée à la réception pour confirmation. Elle partira ensuite en cuisine et sera livrée dans votre chambre."
             elif action == "extend":
                 formula_id = to_int(request.POST.get("formula"))
                 limit = rs.extend(req, res, formula_id)

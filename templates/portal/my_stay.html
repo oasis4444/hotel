@@ -24,19 +24,22 @@
 <form method="post" class="card">{% csrf_token %}
   <input type="hidden" name="room_number" value="{{ room_number }}"><input type="hidden" name="last_name" value="{{ last_name }}">
   <input type="hidden" name="action" value="order">
-  <div class="card-h"><h2>Commander à manger</h2></div>
-  {% if dishes %}
-  <div class="stack">
-    {% for d in dishes %}
+  <div class="card-h"><h2>Menu du restaurant</h2></div>
+  {% if grouped_dishes %}
+  {% for label, items in grouped_dishes %}
+    <h3 style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--lagoon);margin:18px 0 8px">{{ label }}</h3>
+    <div class="stack">
+    {% for d in items %}
     <div class="row between" style="padding:6px 0;border-bottom:1px solid var(--line)">
-      <span>{{ d.name }} <span class="hint">· {{ d.price|ar }}</span></span>
+      <span><b>{{ d.name }}</b> <span class="hint">· {{ d.price|ar }}</span>{% if d.description %}<br><span class="hint">{{ d.description }}</span>{% endif %}</span>
       <input type="number" name="qty_{{ d.pk }}" min="0" value="0" style="width:80px" aria-label="Quantité {{ d.name }}">
     </div>
     {% endfor %}
-  </div>
+    </div>
+  {% endfor %}
   <div class="fields" style="margin-top:12px"><div class="wide"><label for="notes">Remarque (facultatif)</label><textarea id="notes" name="notes" rows="2"></textarea></div></div>
-  <p><button class="btn primary" type="submit">Envoyer en cuisine</button></p>
-  <p class="hint">Facturé automatiquement sur votre note de chambre.</p>
+  <p><button class="btn primary" type="submit">Envoyer ma commande à la réception</button></p>
+  <p class="hint">Votre commande est d'abord validée par la réception, puis préparée en cuisine et livrée dans votre chambre. Facturée automatiquement sur votre note.</p>
   {% else %}<p class="hint">Aucun plat disponible pour le moment.</p>{% endif %}
 </form>
 
@@ -46,12 +49,13 @@
   <div class="card-h"><h2>Prolonger mon séjour</h2></div>
   {% if formulas %}
   <div class="fields">
-    <div class="wide"><label for="formula">Nouvelle formule</label>
-      <select id="formula" name="formula" required>{% for f in formulas %}<option value="{{ f.id }}">{{ f.name }} · {{ f.price|ar }}</option>{% endfor %}</select>
+    <div class="wide"><label for="formula">Combien de temps voulez-vous rester de plus ?</label>
+      <select id="formula" name="formula" required>{% for f in formulas %}<option value="{{ f.id }}">{{ f.name }} ({{ f.plage }}) · {{ f.price|ar }}</option>{% endfor %}</select>
+      <div class="hint">La prolongation commence à l'heure de départ actuelle de votre séjour.</div>
     </div>
   </div>
   <p><button class="btn primary" type="submit">Demander la prolongation</button></p>
-  <p class="hint">Accordée immédiatement si la chambre reste libre ; sinon un message vous l'indique.</p>
+  <p class="hint">Accordée immédiatement si la chambre reste libre pour cette durée ; sinon un message vous l'indique.</p>
   {% endif %}
 </form>
 {% endif %}

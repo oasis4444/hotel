@@ -10,8 +10,10 @@ from .models import Dish, Order, OrderLine
 
 
 @transaction.atomic
-def create_order(request, *, reservation_id=None, room=None, guest_name="", notes="", items):
-    """items : liste de (dish_id, quantity). Au moins un plat disponible requis."""
+def create_order(request, *, reservation_id=None, room=None, guest_name="", notes="", items, self_service=False):
+    """items : liste de (dish_id, quantity). Au moins un plat disponible requis.
+    self_service=True : commande passée par le client lui-même (portail « Mon séjour ») — elle
+    attend la validation de la réception avant de partir en cuisine et d'être facturée."""
     hotel = request.hotel
     reservation = None
     if reservation_id:
@@ -38,16 +40,34 @@ def create_order(request, *, reservation_id=None, room=None, guest_name="", note
     order = Order.objects.create(
         hotel=hotel, reservation=reservation, room=room, guest_name=guest_name.strip(),
         notes=notes.strip(), created_by=request.user,
+        status=Order.Status.REQUESTED if self_service else Order.Status.NEW,
     )
     for dish, qty in cleaned:
         OrderLine.objects.create(order=order, dish=dish, dish_name=dish.name, quantity=qty, unit_price=dish.price)
 
-    if reservation is not None:
+    if reservation is not None and not self_service:
         invoice = bs.ensure_invoice(request, reservation)
         for dish, qty in cleaned:
             bs.add_line(request, invoice, "meal", f"Restauration · {dish.name}", qty, dish.price)
 
-    record(request, "order.create", order, after={"total": order.total}, hotel=hotel)
+    record(request, "order.create", order, after={"total": order.total, "self_service": self_service}, hotel=hotel)
+    return order
+
+
+@transaction.atomic
+def confirm_order(request, order):
+    """La réception valide une commande demandée par le client : elle part en cuisine
+    et est facturée sur la note du séjour."""
+    if order.status != Order.Status.REQUESTED:
+        raise ValidationError("Cette commande n'est plus en attente de validation.")
+    order.status = Order.Status.NEW
+    order.accepted_at = timezone.now()
+    order.save(update_fields=["status", "accepted_at"])
+    if order.reservation is not None:
+        invoice = bs.ensure_invoice(request, order.reservation)
+        for line in order.lines.all():
+            bs.add_line(request, invoice, "meal", f"Restauration · {line.dish_name}", line.quantity, line.unit_price)
+    record(request, "order.confirm", order, hotel=order.hotel)
     return order
 
 
