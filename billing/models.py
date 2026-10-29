@@ -13,6 +13,7 @@ class Invoice(models.Model):
     hotel = models.ForeignKey("hotels.Hotel", on_delete=models.CASCADE, related_name="invoices")
     number = models.CharField(max_length=14)
     reservation = models.OneToOneField("reservations.Reservation", null=True, blank=True, on_delete=models.PROTECT, related_name="invoice")
+    order = models.OneToOneField("kitchen.Order", null=True, blank=True, on_delete=models.SET_NULL, related_name="order_invoice")
     customer_name = models.CharField(max_length=120)
     is_cancelled = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")

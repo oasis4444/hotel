@@ -1,0 +1,30 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Achat #{{ po.pk }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Achat #{{ po.pk }}{% if po.supplier %} · {{ po.supplier.name }}{% endif %}</h1>
+<p><span class="pill {% if po.status == 'received' %}paid{% else %}pending{% endif %}">{{ po.get_status_display }}</span> · total {{ po.total|ar }}</p></div>
+<a href="{% url 'stock_purchases' %}" class="btn">Retour aux achats</a></div>
+<div class="card"><div class="card-h"><h2>Lignes</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Article</th><th>Quantité</th><th>Coût unitaire</th><th>Montant</th></tr></thead><tbody>
+{% for l in po.lines.all %}<tr><td>{{ l.item.name }}</td><td>{{ l.quantity }} {{ l.item.get_unit_display }}</td><td>{{ l.unit_cost|ar }}</td><td>{{ l.amount|ar }}</td></tr>
+{% empty %}<tr><td colspan="4" class="empty"><b>Aucune ligne</b>Ajoutez des articles ci-dessous.</td></tr>{% endfor %}
+</tbody></table></div></div>
+
+{% if po.status == 'draft' %}
+<div class="split">
+<div class="card"><div class="card-h"><h2>Ajouter une ligne</h2></div>
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="action" value="add_line">
+    <div><label for="it">Article</label><select id="it" name="item" required>{% for i in items %}<option value="{{ i.pk }}">{{ i.name }} ({{ i.get_unit_display }})</option>{% endfor %}</select></div>
+    <div><label for="q">Quantité</label><input id="q" type="number" name="quantity" min="0.01" step="0.01" required></div>
+    <div><label for="uc">Coût unitaire (Ar)</label><input id="uc" type="number" name="unit_cost" min="0" required></div>
+    <button class="btn block" type="submit">Ajouter la ligne</button>
+  </form>
+</div>
+<div class="card"><div class="card-h"><h2>Réceptionner</h2></div>
+  <p class="hint">Dès la réception, chaque ligne ajoute la quantité au stock et met à jour le dernier prix d'achat de l'article.</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="action" value="receive">
+    <button class="btn primary block" type="submit" data-confirm="Confirmer la réception ? Le stock sera mis à jour immédiatement.">Marquer réceptionnée</button>
+  </form>
+</div></div>
+{% endif %}
+{% endblock %}

@@ -31,6 +31,51 @@ class Dish(models.Model):
     def __str__(self):
         return f"{self.name} · {self.price} Ar"
 
+    @property
+    def cost(self):
+        total = 0.0
+        for rl in self.recipe_lines.all():
+            total += float(rl.quantity) * rl.stock_item.cost_price
+        return round(total)
+
+    @property
+    def margin(self):
+        return self.price - self.cost
+
+
+class RecipeLine(models.Model):
+    """Fiche recette : ingrédients de stock consommés par portion vendue (coût de revient)."""
+
+    dish = models.ForeignKey(Dish, on_delete=models.CASCADE, related_name="recipe_lines")
+    stock_item = models.ForeignKey("stock.StockItem", on_delete=models.PROTECT, related_name="+")
+    quantity = models.DecimalField("Quantité par portion", max_digits=8, decimal_places=3)
+
+    class Meta:
+        unique_together = ("dish", "stock_item")
+        verbose_name = "Ligne de recette"
+
+    def __str__(self):
+        return f"{self.dish} · {self.quantity} {self.stock_item.unit} de {self.stock_item.name}"
+
+
+class Table(models.Model):
+    class Status(models.TextChoices):
+        FREE = "free", "Libre"
+        OCCUPIED = "occupied", "Occupée"
+
+    hotel = models.ForeignKey("hotels.Hotel", on_delete=models.CASCADE, related_name="tables")
+    name = models.CharField("Nom / numéro", max_length=30)
+    capacity = models.PositiveSmallIntegerField("Places", default=4)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.FREE)
+    is_active = models.BooleanField("Active", default=True)
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Table"
+
+    def __str__(self):
+        return f"Table {self.name}"
+
 
 class Order(models.Model):
     """Commande restauration : réception (ou client) → cuisine → livraison en chambre."""
@@ -48,6 +93,7 @@ class Order(models.Model):
         "reservations.Reservation", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders"
     )
     room = models.ForeignKey("hotels.Room", null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")
+    table = models.ForeignKey(Table, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders")
     guest_name = models.CharField("Client", max_length=120, blank=True)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.NEW, db_index=True)
     notes = models.CharField("Remarque", max_length=300, blank=True)

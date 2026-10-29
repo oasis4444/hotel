@@ -1,0 +1,32 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Tables{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Tables du restaurant/bar</h1><p>Clients de passage, sans rattachement à une chambre.</p></div>
+<a href="{% url 'order_new' %}" class="btn primary">Nouvelle commande</a></div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Plan des tables</h2></div>
+<div class="grid g3">
+{% for t in tables %}
+  <div class="card flat" style="border:1px solid var(--line)">
+    <div class="row between"><b style="font:800 20px var(--f-display)">{{ t.name }}</b><span class="pill {% if t.status == 'occupied' %}occupied{% else %}free{% endif %}">{{ t.get_status_display }}</span></div>
+    <div class="small muted">{{ t.capacity }} places</div>
+    {% with orders=open_orders|get_item:t.pk %}
+    {% if orders %}
+      {% for o in orders %}<div class="small" style="margin-top:6px">Commande #{{ o.pk }} · {{ o.total|ar }} · <span class="pill {{ o.status }}">{{ o.get_status_display }}</span></div>{% endfor %}
+    {% endif %}
+    {% endwith %}
+    <div class="row" style="margin-top:10px">
+      <form method="post" action="{% url 'kitchen_table_action' t.pk 'free' %}">{% csrf_token %}<button class="btn sm">Libérer</button></form>
+      <form method="post" action="{% url 'kitchen_table_action' t.pk 'toggle_active' %}">{% csrf_token %}<button class="btn sm ghost">{% if t.is_active %}Désactiver{% else %}Réactiver{% endif %}</button></form>
+    </div>
+  </div>
+{% empty %}<div class="empty"><b>Aucune table</b>Ajoutez vos tables ci-contre.</div>{% endfor %}
+</div></div>
+<div class="card"><div class="card-h"><h2>Ajouter une table</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="n">Nom / numéro</label><input id="n" type="text" name="name" placeholder="T1" required></div>
+    <div><label for="c">Places</label><input id="c" type="number" name="capacity" value="4" min="1"></div>
+    <button class="btn primary block" type="submit">Ajouter</button>
+  </form>
+</div></div>
+{% endblock %}

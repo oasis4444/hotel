@@ -6,16 +6,27 @@ from audit.service import record
 from billing import services as bs
 from reservations.models import Reservation
 
-from .models import Dish, Order, OrderLine
+from .models import Dish, Order, OrderLine, Table
+
+
+def _consume_recipe_stock(request, order):
+    """Déduit automatiquement les ingrédients de stock selon la fiche recette de chaque plat."""
+    from stock.services import consume_for_order
+
+    for line in order.lines.select_related("dish").all():
+        for rl in line.dish.recipe_lines.select_related("stock_item").all():
+            consume_for_order(request, rl.stock_item, float(rl.quantity) * line.quantity, order=order)
 
 
 @transaction.atomic
-def create_order(request, *, reservation_id=None, room=None, guest_name="", notes="", items, self_service=False):
+def create_order(request, *, reservation_id=None, room=None, table_id=None, guest_name="", notes="", items, self_service=False):
     """items : liste de (dish_id, quantity). Au moins un plat disponible requis.
     self_service=True : commande passée par le client lui-même (portail « Mon séjour ») — elle
-    attend la validation de la réception avant de partir en cuisine et d'être facturée."""
+    attend la validation de la réception avant de partir en cuisine et d'être facturée.
+    table_id : vente au restaurant/bar sans rattachement à un séjour (addition de table séparée)."""
     hotel = request.hotel
     reservation = None
+    table = None
     if reservation_id:
         reservation = Reservation.objects.filter(pk=reservation_id, hotel=hotel).first()
         if not reservation:
@@ -24,6 +35,10 @@ def create_order(request, *, reservation_id=None, room=None, guest_name="", note
             raise ValidationError("La commande ne peut être rattachée qu'à un client actuellement en séjour.")
         room = reservation.room
         guest_name = guest_name or reservation.guest_name
+    elif table_id:
+        table = Table.objects.filter(pk=table_id, hotel=hotel, is_active=True).first()
+        if not table:
+            raise ValidationError("Table introuvable.")
 
     cleaned = []
     for dish_id, qty in items:
@@ -38,17 +53,23 @@ def create_order(request, *, reservation_id=None, room=None, guest_name="", note
         raise ValidationError("Choisissez au moins un plat.")
 
     order = Order.objects.create(
-        hotel=hotel, reservation=reservation, room=room, guest_name=guest_name.strip(),
+        hotel=hotel, reservation=reservation, room=room, table=table, guest_name=guest_name.strip(),
         notes=notes.strip(), created_by=request.user,
         status=Order.Status.REQUESTED if self_service else Order.Status.NEW,
     )
     for dish, qty in cleaned:
         OrderLine.objects.create(order=order, dish=dish, dish_name=dish.name, quantity=qty, unit_price=dish.price)
 
-    if reservation is not None and not self_service:
-        invoice = bs.ensure_invoice(request, reservation)
-        for dish, qty in cleaned:
-            bs.add_line(request, invoice, "meal", f"Restauration · {dish.name}", qty, dish.price)
+    if not self_service:
+        if reservation is not None:
+            invoice = bs.ensure_invoice(request, reservation)
+            for dish, qty in cleaned:
+                bs.add_line(request, invoice, "meal", f"Restauration · {dish.name}", qty, dish.price)
+        elif table is not None:
+            invoice = bs.ensure_order_invoice(request, order)
+            table.status = Table.Status.OCCUPIED
+            table.save(update_fields=["status"])
+        _consume_recipe_stock(request, order)
 
     record(request, "order.create", order, after={"total": order.total, "self_service": self_service}, hotel=hotel)
     return order
@@ -67,6 +88,9 @@ def confirm_order(request, order):
         invoice = bs.ensure_invoice(request, order.reservation)
         for line in order.lines.all():
             bs.add_line(request, invoice, "meal", f"Restauration · {line.dish_name}", line.quantity, line.unit_price)
+    elif order.table is not None:
+        bs.ensure_order_invoice(request, order)
+    _consume_recipe_stock(request, order)
     record(request, "order.confirm", order, hotel=order.hotel)
     return order
 

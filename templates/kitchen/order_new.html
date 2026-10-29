@@ -11,6 +11,15 @@
       {% for s in stays %}<option value="{{ s.pk }}">Ch. {{ s.room.number }} · {{ s.guest_name }}</option>{% endfor %}
     </select>
   </div>
+  {% if tables %}
+  <div><label for="tb">Table (restaurant/bar, sans séjour)</label>
+    <select id="tb" name="table">
+      <option value="">— Aucune —</option>
+      {% for t in tables %}<option value="{{ t.pk }}">Table {{ t.name }} ({{ t.capacity }} pl.)</option>{% endfor %}
+    </select>
+    <div class="hint">Choisissez soit un séjour, soit une table — pas les deux.</div>
+  </div>
+  {% endif %}
   <div><label for="g">Nom du client (si vente directe)</label><input id="g" type="text" name="guest_name" placeholder="Rakoto Jean"></div>
   <div><label>Plats</label>
     <div class="stack" style="margin-top:4px">

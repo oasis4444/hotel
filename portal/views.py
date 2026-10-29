@@ -1,11 +1,29 @@
 from datetime import timedelta
 
+from django.core import signing
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+
+STAY_TOKEN_SALT = "portal-stay-v1"
+STAY_TOKEN_MAX_AGE = 60 * 60 * 24 * 3  # 3 jours : garde-fou, le lien est régénéré par la réception à chaque séjour
+
+
+def make_stay_token(reservation):
+    """Lien sécurisé à usage client : signé et expirant, contrairement à la simple saisie
+    chambre + nom. À régénérer (et réimprimer/renvoyer) à chaque nouveau séjour."""
+    return signing.dumps({"r": reservation.pk}, salt=STAY_TOKEN_SALT)
+
+
+def _stay_from_token(hotel, token):
+    try:
+        data = signing.loads(token, salt=STAY_TOKEN_SALT, max_age=STAY_TOKEN_MAX_AGE)
+    except signing.BadSignature:
+        return None
+    return Reservation.objects.filter(pk=data.get("r"), hotel=hotel, status=Reservation.Status.CHECKED_IN).select_related("room").first()
 
 from hotels.models import Formula, Hotel, Room
 from hotels.utils import parse_local, to_int
@@ -124,13 +142,7 @@ def _find_stay(hotel, room_number, last_name):
     ).select_related("room").first() if room_number.strip() and last_name.strip() else None
 
 
-def my_stay(request, slug):
-    """Espace client en libre-service : commander à manger ou prolonger son séjour,
-    sans passer par la réception. Vérification légère par numéro de chambre + nom."""
-    hotel = _hotel(slug)
-    room_number = request.POST.get("room_number", request.GET.get("room_number", ""))
-    last_name = request.POST.get("last_name", request.GET.get("last_name", ""))
-    res = _find_stay(hotel, room_number, last_name)
+def _stay_context(request, hotel, res, base_ctx):
     dishes = list(Dish.objects.filter(hotel=hotel, is_available=True).order_by("category", "sort_order", "name")) if res else []
     grouped_dishes = []
     for cat, label in Dish.Category.choices:
@@ -138,9 +150,9 @@ def my_stay(request, slug):
         if items:
             grouped_dishes.append((label, items))
     ctx = {
-        "hotel": hotel, "res": res, "room_number": room_number, "last_name": last_name,
-        "dishes": dishes, "grouped_dishes": grouped_dishes,
+        "hotel": hotel, "res": res, "dishes": dishes, "grouped_dishes": grouped_dishes,
         "formulas": Formula.objects.filter(hotel=hotel, is_active=True) if res else [],
+        **base_ctx,
     }
     if request.method == "POST" and res:
         action = request.POST.get("action")
@@ -160,6 +172,29 @@ def my_stay(request, slug):
             ctx["errors"] = e.messages if isinstance(e, ValidationError) else ["Choix invalide. Merci de réessayer."]
     elif request.method == "POST" and not res:
         ctx["errors"] = ["Aucun séjour en cours trouvé pour cette chambre et ce nom. Vérifiez l'orthographe ou appelez la réception."]
+    return ctx
+
+
+def my_stay(request, slug):
+    """Espace client en libre-service : commander à manger ou prolonger son séjour,
+    sans passer par la réception. Vérification légère par numéro de chambre + nom
+    (utilisée avant l'arrivée ou si le lien sécurisé n'est pas disponible)."""
+    hotel = _hotel(slug)
+    room_number = request.POST.get("room_number", request.GET.get("room_number", ""))
+    last_name = request.POST.get("last_name", request.GET.get("last_name", ""))
+    res = _find_stay(hotel, room_number, last_name)
+    ctx = _stay_context(request, hotel, res, {"room_number": room_number, "last_name": last_name})
+    return render(request, "portal/my_stay.html", ctx)
+
+
+def my_stay_token(request, slug, token):
+    """Espace client via lien sécurisé (signé, expirant) remis par la réception au check-in —
+    pas besoin de ressaisir chambre + nom, et le lien ne fonctionne que pour ce séjour précis."""
+    hotel = _hotel(slug)
+    res = _stay_from_token(hotel, token)
+    ctx = _stay_context(request, hotel, res, {"room_number": "", "last_name": "", "secure_link": True})
+    if res is None:
+        ctx["errors"] = ["Ce lien n'est plus valable (séjour terminé ou lien expiré). Demandez un nouveau lien à la réception."]
     return render(request, "portal/my_stay.html", ctx)
 
 

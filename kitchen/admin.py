@@ -1,6 +1,11 @@
 from django.contrib import admin
 
-from .models import Dish, Order, OrderLine
+from .models import Dish, Order, OrderLine, RecipeLine, Table
+
+
+class RecipeLineInline(admin.TabularInline):
+    model = RecipeLine
+    extra = 0
 
 
 @admin.register(Dish)
@@ -8,6 +13,13 @@ class DishAdmin(admin.ModelAdmin):
     list_display = ("name", "hotel", "category", "price", "is_available")
     list_filter = ("hotel", "category", "is_available")
     search_fields = ("name",)
+    inlines = [RecipeLineInline]
+
+
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    list_display = ("name", "hotel", "capacity", "status", "is_active")
+    list_filter = ("hotel", "status", "is_active")
 
 
 class OrderLineInline(admin.TabularInline):

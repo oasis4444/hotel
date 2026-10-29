@@ -7,7 +7,7 @@ from django.utils import timezone
 from audit.service import record
 from hotels.models import Room
 
-from .models import CleaningTask, Expense, Remittance, Shift
+from .models import CleaningTask, Expense, MaintenanceTicket, Remittance, Shift
 
 
 # ------------------------------------------------------------- quarts
@@ -194,3 +194,42 @@ def cleaning_verify(request, task):
     if task.minutes_to_ready is not None and task.minutes_to_ready < task.hotel.cleaning_fraud_minutes:
         record(request, "anomaly.cleaning_too_fast", task,
                reason=f"Chambre prête {task.minutes_to_ready} min après le check-out (seuil {task.hotel.cleaning_fraud_minutes} min)")
+
+
+# ------------------------------------------------------------- maintenance
+@transaction.atomic
+def ticket_create(request, title, description, priority, room=None, block_room=False):
+    if not title.strip():
+        raise ValidationError("Décrivez le problème.")
+    ticket = MaintenanceTicket.objects.create(
+        hotel=request.hotel, room=room, title=title.strip()[:160], description=description.strip(),
+        priority=priority if priority in dict(MaintenanceTicket.Priority.choices) else MaintenanceTicket.Priority.NORMAL,
+        block_room=block_room, reported_by=request.user,
+    )
+    if block_room and room is not None:
+        room.set_status(Room.Status.OUT_OF_SERVICE)
+    record(request, "maintenance.create", ticket, after={"title": ticket.title, "priority": ticket.priority})
+    return ticket
+
+
+def ticket_start(request, ticket):
+    if ticket.status != MaintenanceTicket.Status.OPEN:
+        raise ValidationError("Ce ticket est déjà pris en charge.")
+    ticket.status = MaintenanceTicket.Status.IN_PROGRESS
+    ticket.started_at = timezone.now()
+    ticket.assigned_to = request.user
+    ticket.save(update_fields=["status", "started_at", "assigned_to"])
+    record(request, "maintenance.start", ticket)
+
+
+@transaction.atomic
+def ticket_done(request, ticket, cost=None, reopen_room=False):
+    if ticket.status == MaintenanceTicket.Status.DONE:
+        raise ValidationError("Ce ticket est déjà résolu.")
+    ticket.status = MaintenanceTicket.Status.DONE
+    ticket.done_at = timezone.now()
+    ticket.cost = cost
+    ticket.save(update_fields=["status", "done_at", "cost"])
+    if reopen_room and ticket.room is not None and ticket.room.status == Room.Status.OUT_OF_SERVICE:
+        ticket.room.set_status(Room.Status.DIRTY)  # repasse par le ménage avant d'être revendue
+    record(request, "maintenance.done", ticket, after={"cost": cost})

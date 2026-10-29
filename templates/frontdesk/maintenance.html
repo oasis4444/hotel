@@ -1,0 +1,44 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Maintenance{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Maintenance</h1><p>Signaler et suivre les pannes et réparations.</p></div></div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Tickets en cours</h2></div>
+{% for t in open_tickets %}
+  <div style="padding:14px 0;border-bottom:1px solid var(--line)">
+    <div class="row between"><div><b>{{ t.title }}</b>{% if t.room %} · Ch. {{ t.room.number }}{% endif %}<br>
+      <span class="small muted">Signalé par {{ t.reported_by.display_name|default:t.reported_by.username }} · {{ t.created_at|dm }}</span></div>
+      <span class="pill {% if t.priority == 'urgent' %}cancelled{% elif t.priority == 'low' %}maintenance{% else %}pending{% endif %}">{{ t.get_priority_display }}</span></div>
+    {% if t.description %}<div class="small muted" style="margin-top:4px">{{ t.description }}</div>{% endif %}
+    <div class="row" style="margin-top:8px"><span class="pill {{ t.status }}">{{ t.get_status_display }}</span>
+    {% if hperm.maintenance_manage %}
+      {% if t.status == 'open' %}<form method="post" action="{% url 'maintenance_action' t.pk 'start' %}">{% csrf_token %}<button class="btn sm primary">Prendre en charge</button></form>{% endif %}
+      {% if t.status == 'in_progress' %}
+      <form method="post" action="{% url 'maintenance_action' t.pk 'done' %}" class="row">{% csrf_token %}
+        <input type="number" name="cost" placeholder="Coût (Ar, facultatif)" style="width:170px" aria-label="Coût">
+        {% if t.block_room %}<label class="small" style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="reopen_room" style="width:auto;min-height:auto" checked> remettre la chambre au ménage</label>{% endif %}
+        <button class="btn sm primary">Résoudre</button>
+      </form>{% endif %}
+    {% endif %}
+    </div>
+  </div>
+{% empty %}<div class="empty"><b>Aucun ticket en cours</b></div>{% endfor %}
+</div>
+
+<div class="stack">
+<div class="card"><div class="card-h"><h2>Signaler un problème</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="t">Problème</label><input id="t" type="text" name="title" placeholder="Climatiseur en panne" required></div>
+    <div><label for="r">Chambre (facultatif)</label><select id="r" name="room"><option value="">—</option>{% for r in rooms %}<option value="{{ r.pk }}">Ch. {{ r.number }}</option>{% endfor %}</select></div>
+    <div><label for="pr">Priorité</label><select id="pr" name="priority">{% for v, l in priorities %}<option value="{{ v }}" {% if v == "normal" %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="d">Détails (facultatif)</label><textarea id="d" name="description" rows="3"></textarea></div>
+    <label class="small" style="display:flex;align-items:center;gap:6px"><input type="checkbox" name="block_room" style="width:auto;min-height:auto"> bloquer la chambre (hors service) jusqu'à réparation</label>
+    <button class="btn primary block" type="submit">Créer le ticket</button>
+  </form>
+</div>
+<div class="card"><div class="card-h"><h2>Historique</h2></div>
+{% for t in done %}<div class="small" style="padding:6px 0;border-bottom:1px solid var(--line)">{{ t.title }}{% if t.room %} · Ch. {{ t.room.number }}{% endif %} · {{ t.done_at|dm }}{% if t.cost %} · {{ t.cost|ar }}{% endif %}</div>
+{% empty %}<div class="muted small">Aucun historique.</div>{% endfor %}
+</div>
+</div></div>
+{% endblock %}

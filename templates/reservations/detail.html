@@ -22,6 +22,13 @@
       {% if res.notes %}<dt>Notes</dt><dd style="white-space:pre-line">{{ res.notes }}</dd>{% endif %}
     </dl></div>
 
+  {% if stay_link %}<div class="card"><div class="card-h"><h2>Lien client sécurisé</h2></div>
+    <div class="row" style="align-items:flex-start;gap:16px">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data={{ stay_link|urlencode }}" alt="QR code du séjour" width="140" height="140" style="border-radius:10px;border:1px solid var(--line)">
+      <div><p class="hint" style="margin-top:0">À transmettre au client pour ce séjour uniquement (valable jusqu'au départ, expire automatiquement). Commande et prolongation sans ressaisir chambre + nom.</p>
+      <p class="small" style="word-break:break-all">{{ stay_link }}</p></div>
+    </div></div>{% endif %}
+
   {% if invoice %}<div class="card"><div class="card-h"><h2>Facture {{ invoice.number }}</h2><span class="pill {{ invoice.status }}">{{ invoice.status_label }}</span></div>
     {% for a in allocs %}<div class="total-row"><span>{{ a.line.description }} {% if a.status != 'cancelled' %}<span class="pill {{ a.status }}">{% if a.status == 'paid' %}Payée{% elif a.status == 'partial' %}Partielle{% else %}Non payée{% endif %}</span>{% else %}<span class="pill cancelled">Annulée</span>{% endif %}</span><span>{{ a.line.amount|ar }}</span></div>{% endfor %}
     <div class="total-row big"><span>Solde à payer</span><span>{{ invoice.balance|ar }}</span></div>

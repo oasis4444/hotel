@@ -9,4 +9,5 @@ urlpatterns = [
     path("<slug:slug>/suivi/<str:code>/", views.status, name="portal_status"),
     path("<slug:slug>/etat/", views.rooms_fragment, name="portal_rooms"),
     path("<slug:slug>/ma-chambre/", views.my_stay, name="portal_my_stay"),
+    path("<slug:slug>/sejour/<str:token>/", views.my_stay_token, name="portal_my_stay_token"),
 ]

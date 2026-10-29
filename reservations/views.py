@@ -148,12 +148,17 @@ def reservation_detail(request, pk):
     history = AuditLog.objects.filter(hotel=request.hotel, object_type="reservation", object_id=str(res.pk)).select_related("user")[:20]
     limit = rs.extension_limit(res) if res.status == S.CHECKED_IN else None
     needs = rs.checkout_requirements(res, now) if res.status == S.CHECKED_IN else []
+    stay_link = None
+    if res.status == S.CHECKED_IN:
+        from portal.views import make_stay_token
+
+        stay_link = request.build_absolute_uri(f"/h/{res.hotel.slug}/sejour/{make_stay_token(res)}/")
     ctx = {
         "res": res, "invoice": invoice, "history": history, "limit": limit, "needs": needs,
         "allocs": line_allocations(invoice) if invoice else [],
         "formulas": Formula.objects.filter(hotel=request.hotel, is_active=True),
         "call_choices": [c for c in Reservation.Call.choices if c[0]],
-        "page": "reservations", "now": now,
+        "stay_link": stay_link, "page": "reservations", "now": now,
     }
     return render(request, "reservations/detail.html", ctx)
 

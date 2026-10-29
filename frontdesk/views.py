@@ -15,7 +15,9 @@ from reservations.models import Reservation
 
 from . import services as fs
 from .alerts import build_alerts
-from .models import CleaningTask, Expense, Remittance, Shift
+from hotels.models import Room
+
+from .models import CleaningTask, Expense, MaintenanceTicket, Remittance, Shift
 
 
 def _fail(request, exc):
@@ -251,6 +253,52 @@ def audit_list(request):
     if q:
         qs = qs.filter(Q(action__icontains=q) | Q(object_repr__icontains=q) | Q(reason__icontains=q) | Q(user__username__icontains=q))
     return render(request, "frontdesk/audit.html", {"items": qs[:200], "kind": kind, "q": q, "page": "audit"})
+
+
+# ------------------------------------------------------------- maintenance
+@perm_required("maintenance.view")
+def maintenance(request):
+    hotel = request.hotel
+    if request.method == "POST":
+        try:
+            room_id = request.POST.get("room") or None
+            room = get_object_or_404(fs.Room, pk=room_id, hotel=hotel) if room_id else None
+            fs.ticket_create(
+                request, request.POST.get("title", ""), request.POST.get("description", ""),
+                request.POST.get("priority", "normal"), room=room, block_room=bool(request.POST.get("block_room")),
+            )
+            messages.success(request, "Ticket de maintenance créé.")
+        except ValidationError as e:
+            _fail(request, e)
+        return redirect("maintenance")
+    from hotels.models import Room as RoomModel
+
+    qs = MaintenanceTicket.objects.filter(hotel=hotel).select_related("room", "reported_by", "assigned_to")
+    return render(request, "frontdesk/maintenance.html", {
+        "open_tickets": qs.exclude(status=MaintenanceTicket.Status.DONE),
+        "done": qs.filter(status=MaintenanceTicket.Status.DONE)[:20],
+        "rooms": RoomModel.objects.filter(hotel=hotel, is_active=True),
+        "priorities": MaintenanceTicket.Priority.choices, "page": "maintenance",
+    })
+
+
+@perm_required("maintenance.view")
+@require_POST
+def maintenance_action(request, pk, action):
+    ticket = get_object_or_404(MaintenanceTicket, pk=pk, hotel=request.hotel)
+    try:
+        if action == "start":
+            if not has_perm(request.membership, "maintenance.manage"):
+                raise ValidationError("Réservé au service maintenance.")
+            fs.ticket_start(request, ticket)
+        elif action == "done":
+            if not has_perm(request.membership, "maintenance.manage"):
+                raise ValidationError("Réservé au service maintenance.")
+            fs.ticket_done(request, ticket, to_int(request.POST.get("cost"), None), bool(request.POST.get("reopen_room")))
+        messages.success(request, "Ticket mis à jour.")
+    except ValidationError as e:
+        _fail(request, e)
+    return redirect("maintenance")
 
 
 def switch_hotel(request, pk):

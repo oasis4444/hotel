@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Recette · {{ dish.name }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Fiche recette · {{ dish.name }}</h1><p>Prix de vente {{ dish.price|ar }} · coût de revient {{ dish.cost|ar }} · marge {{ dish.margin|ar }}.</p></div>
+<a href="{% url 'kitchen_menu' %}" class="btn">Retour à la carte</a></div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Ingrédients consommés par portion</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Article</th><th>Quantité / portion</th><th>Coût</th><th></th></tr></thead><tbody>
+{% for l in lines %}<tr>
+  <td>{{ l.stock_item.name }}</td><td>{{ l.quantity }} {{ l.stock_item.get_unit_display }}</td>
+  <td>{{ l.quantity|floatformat:3|default:0 }} × {{ l.stock_item.cost_price|ar }}</td>
+  <td class="right">{% if hperm.kitchen_menu_manage %}<form method="post">{% csrf_token %}<input type="hidden" name="action" value="remove"><input type="hidden" name="line" value="{{ l.pk }}"><button class="btn sm danger">Retirer</button></form>{% endif %}</td>
+</tr>{% empty %}<tr><td colspan="4" class="empty"><b>Aucun ingrédient</b>Ce plat n'a pas encore de fiche recette (coût de revient non calculé).</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% if hperm.kitchen_menu_manage %}
+<div class="card"><div class="card-h"><h2>Ajouter un ingrédient</h2></div>
+  <form method="post" class="stack">{% csrf_token %}<input type="hidden" name="action" value="add">
+    <div><label for="si">Article de stock</label><select id="si" name="stock_item" required>
+      {% for i in stock_items %}<option value="{{ i.pk }}">{{ i.name }} ({{ i.get_unit_display }})</option>{% endfor %}
+    </select></div>
+    <div><label for="qty">Quantité par portion</label><input id="qty" type="number" name="quantity" min="0.001" step="0.001" required></div>
+    <button class="btn primary block" type="submit">Ajouter à la recette</button>
+    <div class="hint">Chaque portion vendue déduira automatiquement cette quantité du stock. Gérez les articles depuis Exploitation → Stock.</div>
+  </form>
+</div>
+{% endif %}
+</div>
+{% endblock %}

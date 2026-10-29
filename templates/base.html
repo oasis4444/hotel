@@ -39,7 +39,7 @@
   <aside class="side" aria-label="Navigation principale"
     {% if page == 'board' or page == 'planning' %}data-open="chambres"
     {% elif page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' %}data-open="argent"
-    {% elif page == 'cleaning' or page == 'kitchen' %}data-open="exploitation"
+    {% elif page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' %}data-open="exploitation"
     {% elif page == 'reports' or page == 'audit' or page == 'hotels' %}data-open="pilotage"
     {% endif %}>
     <div class="side-scroll">
@@ -72,8 +72,8 @@
         </button>
         {% endif %}
 
-        {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}
-        <button type="button" class="nav-tile {% if page == 'cleaning' or page == 'kitchen' %}on{% endif %}" data-nav-open="exploitation">
+        {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create or hperm.table_manage or hperm.stock_view or hperm.maintenance_view %}
+        <button type="button" class="nav-tile {% if page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' %}on{% endif %}" data-nav-open="exploitation">
           <span class="nav-ic c-exploit"><svg class="ic"><use href="#i-broom"/></svg></span>Exploitation<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
         </button>
         {% endif %}
@@ -105,12 +105,15 @@
       </nav>
       {% endif %}
 
-      {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}
+      {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create or hperm.table_manage or hperm.stock_view or hperm.maintenance_view %}
       <nav class="nav-sub" id="sub-exploitation" aria-label="Sous-menu Exploitation">
         <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
         <b class="nav-sub-title">Exploitation</b>
         {% if hperm.cleaning_view %}<a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-broom"/></svg></span>Ménage</a>{% endif %}
         {% if hperm.kitchen_view or hperm.order_create %}<a href="{% url 'kitchen_queue' %}" class="{% if page == 'kitchen' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-chef"/></svg></span>Restauration</a>{% endif %}
+        {% if hperm.table_manage %}<a href="{% url 'kitchen_tables' %}" class="{% if page == 'tables' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-board"/></svg></span>Tables</a>{% endif %}
+        {% if hperm.stock_view %}<a href="{% url 'stock_items' %}" class="{% if page == 'stock' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-wallet"/></svg></span>Stock</a>{% endif %}
+        {% if hperm.maintenance_view %}<a href="{% url 'maintenance' %}" class="{% if page == 'maintenance' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-shield"/></svg></span>Maintenance</a>{% endif %}
       </nav>
       {% endif %}
 

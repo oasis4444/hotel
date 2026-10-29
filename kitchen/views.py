@@ -5,9 +5,10 @@ from django.views.decorators.http import require_POST
 
 from hotels.permissions import has_perm, perm_required
 from reservations.models import Reservation
+from stock.models import StockItem
 
 from . import services as ks
-from .models import Dish, Order
+from .models import Dish, Order, RecipeLine, Table
 
 
 def _fail(request, exc):
@@ -69,6 +70,7 @@ def order_new(request):
     hotel = request.hotel
     dishes = Dish.objects.filter(hotel=hotel, is_available=True)
     stays = Reservation.objects.filter(hotel=hotel, status=Reservation.Status.CHECKED_IN).select_related("room")
+    tables = Table.objects.filter(hotel=hotel, is_active=True)
     if request.method == "POST":
         items = []
         for dish in dishes:
@@ -78,6 +80,7 @@ def order_new(request):
             ks.create_order(
                 request,
                 reservation_id=request.POST.get("reservation") or None,
+                table_id=request.POST.get("table") or None,
                 guest_name=request.POST.get("guest_name", ""),
                 notes=request.POST.get("notes", ""),
                 items=items,
@@ -86,7 +89,39 @@ def order_new(request):
             return redirect("kitchen_queue")
         except ValidationError as e:
             _fail(request, e)
-    return render(request, "kitchen/order_new.html", {"dishes": dishes, "stays": stays, "page": "kitchen"})
+    return render(request, "kitchen/order_new.html", {"dishes": dishes, "stays": stays, "tables": tables, "page": "kitchen"})
+
+
+@perm_required("table.manage")
+def tables(request):
+    hotel = request.hotel
+    if request.method == "POST":
+        if not request.POST.get("name", "").strip():
+            messages.error(request, "Nom ou numéro de table obligatoire.")
+        else:
+            Table.objects.create(hotel=hotel, name=request.POST["name"].strip(), capacity=request.POST.get("capacity") or 4)
+            messages.success(request, "Table ajoutée.")
+        return redirect("kitchen_tables")
+    qs = Table.objects.filter(hotel=hotel)
+    open_orders = {}
+    for o in Order.objects.filter(hotel=hotel, table__isnull=False).exclude(
+        status__in=[Order.Status.DELIVERED, Order.Status.CANCELLED]).select_related("table").prefetch_related("lines"):
+        open_orders.setdefault(o.table_id, []).append(o)
+    return render(request, "kitchen/tables.html", {"tables": qs, "open_orders": open_orders, "page": "tables"})
+
+
+@perm_required("table.manage")
+@require_POST
+def table_action(request, pk, action):
+    table = get_object_or_404(Table, pk=pk, hotel=request.hotel)
+    if action == "free":
+        table.status = Table.Status.FREE
+        table.save(update_fields=["status"])
+        messages.success(request, f"Table {table.name} libérée.")
+    elif action == "toggle_active":
+        table.is_active = not table.is_active
+        table.save(update_fields=["is_active"])
+    return redirect("kitchen_tables")
 
 
 @perm_required("kitchen.menu_view")
@@ -137,3 +172,30 @@ def menu_action(request, pk, action):
         dish.is_available = not dish.is_available
         dish.save(update_fields=["is_available"])
     return redirect("kitchen_menu")
+
+
+@perm_required("kitchen.menu_view")
+def dish_recipe(request, pk):
+    dish = get_object_or_404(Dish, pk=pk, hotel=request.hotel)
+    if request.method == "POST":
+        if not has_perm(request.membership, "kitchen.menu_manage"):
+            messages.error(request, "Réservé à la cuisine ou à la direction.")
+            return redirect("dish_recipe", pk=dish.pk)
+        action = request.POST.get("action")
+        try:
+            if action == "add":
+                item = get_object_or_404(StockItem, pk=request.POST.get("stock_item"), hotel=request.hotel)
+                qty = float(request.POST.get("quantity") or 0)
+                if qty <= 0:
+                    raise ValidationError("Quantité invalide.")
+                RecipeLine.objects.update_or_create(dish=dish, stock_item=item, defaults={"quantity": qty})
+                messages.success(request, "Ingrédient ajouté à la recette.")
+            elif action == "remove":
+                RecipeLine.objects.filter(pk=request.POST.get("line"), dish=dish).delete()
+        except (ValidationError, ValueError) as e:
+            _fail(request, e if isinstance(e, ValidationError) else ValidationError("Quantité invalide."))
+        return redirect("dish_recipe", pk=dish.pk)
+    return render(request, "kitchen/dish_recipe.html", {
+        "dish": dish, "lines": dish.recipe_lines.select_related("stock_item"),
+        "stock_items": StockItem.objects.filter(hotel=request.hotel, is_active=True), "page": "kitchen",
+    })

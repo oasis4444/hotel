@@ -1,0 +1,23 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Achats{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Commandes d'achat</h1><p>Réceptionner une commande met automatiquement le stock à jour.</p></div>
+<a href="{% url 'stock_items' %}" class="btn">Retour au stock</a></div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Historique</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>#</th><th>Fournisseur</th><th>Statut</th><th>Total</th><th>Date</th><th></th></tr></thead><tbody>
+{% for po in purchases %}<tr>
+  <td>{{ po.pk }}</td><td>{{ po.supplier.name|default:"—" }}</td>
+  <td><span class="pill {% if po.status == 'received' %}paid{% else %}pending{% endif %}">{{ po.get_status_display }}</span></td>
+  <td class="num">{{ po.total|ar }}</td><td>{{ po.created_at|dm }}</td>
+  <td class="right"><a href="{% url 'stock_purchase_detail' po.pk %}" class="btn sm">Ouvrir</a></td>
+</tr>{% empty %}<tr><td colspan="6" class="empty"><b>Aucun achat</b></td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="card"><div class="card-h"><h2>Nouvelle commande</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="s">Fournisseur</label><select id="s" name="supplier"><option value="">—</option>{% for s in suppliers %}<option value="{{ s.pk }}">{{ s.name }}</option>{% endfor %}</select></div>
+    <button class="btn primary block" type="submit">Créer la commande</button>
+    <div class="hint">Vous ajouterez les articles et quantités à l'étape suivante.</div>
+  </form>
+</div></div>
+{% endblock %}

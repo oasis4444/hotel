@@ -8,12 +8,15 @@
 <div class="card"><div class="card-h"><h2>Plats</h2></div>
 {% for d in dishes %}
   <div class="row between" style="padding:10px 0;border-bottom:1px solid var(--line)">
-    <div><b>{{ d.name }}</b><br><span class="small muted">{{ d.get_category_display }} · {{ d.price|ar }}{% if d.description %} · {{ d.description }}{% endif %}</span></div>
-    {% if hperm.kitchen_menu_manage %}
+    <div><b>{{ d.name }}</b><br><span class="small muted">{{ d.get_category_display }} · {{ d.price|ar }}{% if d.description %} · {{ d.description }}{% endif %}</span>
+      {% if hperm.stock_view and d.recipe_lines.all %}<br><span class="small muted">Coût {{ d.cost|ar }} · marge {{ d.margin|ar }}</span>{% endif %}</div>
+    <div class="row">
+    {% if hperm.kitchen_menu_manage %}<a href="{% url 'dish_recipe' d.pk %}" class="btn sm">Recette</a>
     <form method="post" action="{% url 'kitchen_menu_action' d.pk 'toggle' %}">{% csrf_token %}
       <button class="btn sm {% if not d.is_available %}primary{% endif %}">{% if d.is_available %}Disponible{% else %}Indisponible{% endif %}</button>
     </form>
     {% else %}<span class="pill {% if d.is_available %}free{% else %}cancelled{% endif %}">{% if d.is_available %}Disponible{% else %}Indisponible{% endif %}</span>{% endif %}
+    </div>
   </div>
 {% empty %}<div class="empty"><b>Carte vide</b>Ajoutez un premier plat.</div>{% endfor %}
 </div>

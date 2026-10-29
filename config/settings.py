@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     "frontdesk",
     "portal",
     "kitchen",
+    "stock",
 ]
 
 MIDDLEWARE = [

@@ -15,5 +15,7 @@ urlpatterns = [
     path("menage/", views.cleaning, name="cleaning"),
     path("menage/<int:pk>/<str:action>/", views.cleaning_action, name="cleaning_action"),
     path("audit/", views.audit_list, name="audit"),
+    path("maintenance/", views.maintenance, name="maintenance"),
+    path("maintenance/<int:pk>/<str:action>/", views.maintenance_action, name="maintenance_action"),
     path("hotel/<int:pk>/", views.switch_hotel, name="switch_hotel"),
 ]

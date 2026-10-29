@@ -153,3 +153,36 @@ class CleaningTask(models.Model):
         if self.started_at and self.done_at:
             return max(1, int((self.done_at - self.started_at).total_seconds() // 60))
         return None
+
+
+class MaintenanceTicket(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Ouvert"
+        IN_PROGRESS = "in_progress", "En cours"
+        DONE = "done", "Résolu"
+
+    class Priority(models.TextChoices):
+        LOW = "low", "Faible"
+        NORMAL = "normal", "Normale"
+        URGENT = "urgent", "Urgente"
+
+    hotel = models.ForeignKey("hotels.Hotel", on_delete=models.CASCADE, related_name="maintenance_tickets")
+    room = models.ForeignKey("hotels.Room", null=True, blank=True, on_delete=models.SET_NULL, related_name="maintenance_tickets")
+    title = models.CharField("Problème", max_length=160)
+    description = models.TextField("Détails", blank=True)
+    priority = models.CharField(max_length=10, choices=Priority.choices, default=Priority.NORMAL)
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.OPEN, db_index=True)
+    block_room = models.BooleanField("Bloquer la chambre (hors service)", default=False)
+    cost = models.PositiveIntegerField("Coût de la réparation (Ar)", null=True, blank=True)
+    reported_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    done_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-priority", "-created_at"]
+        verbose_name = "Ticket de maintenance"
+
+    def __str__(self):
+        return f"{self.title} · {self.room or 'général'}"

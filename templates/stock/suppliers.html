@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Fournisseurs{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Fournisseurs</h1><p>Coordonnées et suivi des achats.</p></div>
+<a href="{% url 'stock_items' %}" class="btn">Retour au stock</a></div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Liste</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Nom</th><th>Téléphone</th><th>Adresse</th><th></th></tr></thead><tbody>
+{% for s in suppliers %}<tr {% if not s.is_active %}style="opacity:.5"{% endif %}>
+  <td><b>{{ s.name }}</b>{% if s.notes %}<br><span class="small muted">{{ s.notes }}</span>{% endif %}</td>
+  <td>{{ s.phone|default:"—" }}</td><td>{{ s.address|default:"—" }}</td>
+  <td class="right"><form method="post" action="{% url 'stock_supplier_toggle' s.pk %}">{% csrf_token %}<button class="btn sm ghost">{% if s.is_active %}Désactiver{% else %}Réactiver{% endif %}</button></form></td>
+</tr>{% empty %}<tr><td colspan="4" class="empty"><b>Aucun fournisseur</b></td></tr>{% endfor %}
+</tbody></table></div></div>
+<div class="card"><div class="card-h"><h2>Nouveau fournisseur</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="n">Nom</label><input id="n" type="text" name="name" required></div>
+    <div><label for="p">Téléphone</label><input id="p" type="text" name="phone"></div>
+    <div><label for="a">Adresse</label><input id="a" type="text" name="address"></div>
+    <div><label for="no">Notes</label><input id="no" type="text" name="notes"></div>
+    <button class="btn primary block" type="submit">Ajouter</button>
+  </form>
+</div></div>
+{% endblock %}

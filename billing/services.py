@@ -26,6 +26,23 @@ def ensure_invoice(request, res):
     return inv
 
 
+@transaction.atomic
+def ensure_order_invoice(request, order):
+    """Addition de table : facture autonome (restaurant/bar) non liée à un séjour."""
+    try:
+        return order.order_invoice
+    except Invoice.DoesNotExist:
+        pass
+    number = f"F{Sequence.next(order.hotel, 'invoice'):06d}"
+    user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
+    label = f"Table {order.table.name}" if order.table else (order.guest_name or f"Commande #{order.pk}")
+    inv = Invoice.objects.create(hotel=order.hotel, number=number, order=order, customer_name=label, created_by=user)
+    for line in order.lines.all():
+        add_line(request, inv, "meal", f"Restauration · {line.dish_name}", line.quantity, line.unit_price)
+    record(request, "invoice.create", inv, hotel=order.hotel)
+    return inv
+
+
 def sync_room_line(request, res):
     line = res.invoice.lines.filter(kind="room", is_cancelled=False).first()
     if line:
