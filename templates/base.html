@@ -31,10 +31,18 @@
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
   <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="m11 12 9-9M16 7l3 3"/></symbol>
   <symbol id="i-chef" viewBox="0 0 24 24"><path d="M7 21h10M9 21v-7.2M15 21v-7.2"/><path d="M6.5 10.8a3 3 0 0 1-.9-5.9A3.5 3.5 0 0 1 12 3.3a3.5 3.5 0 0 1 6.4 1.6 3 3 0 0 1-.9 5.9z"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></symbol>
+  <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5m6-7-7 7 7 7"/></symbol>
 </svg>
 
 <div class="app">
-  <aside class="side" aria-label="Navigation principale">
+  <aside class="side" aria-label="Navigation principale"
+    {% if page == 'board' or page == 'planning' %}data-open="chambres"
+    {% elif page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' %}data-open="argent"
+    {% elif page == 'cleaning' or page == 'kitchen' %}data-open="exploitation"
+    {% elif page == 'reports' or page == 'audit' or page == 'hotels' %}data-open="pilotage"
+    {% endif %}>
+    <div class="side-scroll">
     <div class="brand">{% if current_hotel.logo %}<span class="brand-mark" style="padding:0;overflow:hidden"><img src="{{ current_hotel.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover"></span>{% else %}<span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>{% endif %}{{ APP_NAME }}</div>
     {% if memberships|length > 1 %}
     <div class="hotel-switch">
@@ -44,27 +52,82 @@
       </select>
     </div>
     {% elif current_hotel %}<div class="hotel-name"><b>{{ current_hotel.name }}</b>{{ membership.get_role_display }}</div>{% endif %}
-    <nav class="nav">
-      {% if hperm.dashboard_view %}<a href="{% url 'dashboard' %}" class="{% if page == 'dashboard' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Tableau de bord</a>{% endif %}
-      {% if hperm.board_view %}<a href="{% url 'board' %}" class="{% if page == 'board' %}on{% endif %}"><svg class="ic"><use href="#i-board"/></svg>Chambres</a>{% endif %}
-      {% if hperm.planning_view %}<a href="{% url 'planning' %}" class="{% if page == 'planning' %}on{% endif %}"><svg class="ic"><use href="#i-plan"/></svg>Planning</a>{% endif %}
-      {% if hperm.reservation_view %}<a href="{% url 'reservations' %}" class="{% if page == 'reservations' %}on{% endif %}"><svg class="ic"><use href="#i-book"/></svg>Réservations</a>{% endif %}
-      {% if hperm.client_view %}<a href="{% url 'clients' %}" class="{% if page == 'clients' %}on{% endif %}"><svg class="ic"><use href="#i-users"/></svg>Clients</a>{% endif %}
-      {% if hperm.billing_view or hperm.shift_manage or hperm.expense_request %}<div class="nav-group">Argent</div>{% endif %}
-      {% if hperm.billing_view %}<a href="{% url 'invoices' %}" class="{% if page == 'invoices' %}on{% endif %}"><svg class="ic"><use href="#i-receipt"/></svg>Factures</a>{% endif %}
-      {% if hperm.shift_manage %}<a href="{% url 'shift' %}" class="{% if page == 'shift' %}on{% endif %}"><svg class="ic"><use href="#i-cash"/></svg>Mon quart</a>{% endif %}
-      {% if hperm.remit_make %}<a href="{% url 'remittances' %}" class="{% if page == 'remittances' %}on{% endif %}"><svg class="ic"><use href="#i-wallet"/></svg>Versements</a>{% endif %}
-      {% if hperm.expense_request %}<a href="{% url 'expenses' %}" class="{% if page == 'expenses' %}on{% endif %}"><svg class="ic"><use href="#i-out"/></svg>Dépenses</a>{% endif %}
-      {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}<div class="nav-group">Exploitation</div>{% endif %}
-      {% if hperm.cleaning_view %}<a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><svg class="ic"><use href="#i-broom"/></svg>Ménage</a>{% endif %}
-      {% if hperm.kitchen_view or hperm.order_create %}<a href="{% url 'kitchen_queue' %}" class="{% if page == 'kitchen' %}on{% endif %}"><svg class="ic"><use href="#i-chef"/></svg>Restauration</a>{% endif %}
-      {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}<div class="nav-group">Pilotage</div>{% endif %}
-      {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><svg class="ic"><use href="#i-chart"/></svg>Rapports</a>{% endif %}
-      {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><svg class="ic"><use href="#i-shield"/></svg>Journal d'audit</a>{% endif %}
-      {% if hperm.hotel_manage %}<a href="{% url 'team' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-users"/></svg>Équipe</a>{% endif %}
-      {% if hperm.hotel_manage %}<a href="{% url 'hotel_settings' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-key"/></svg>Paramètres hôtel</a>{% endif %}
-      {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><svg class="ic"><use href="#i-plus"/></svg>Mes hôtels</a>{% endif %}
-    </nav>
+
+    <div class="nav-wrap">
+      <nav class="nav-main" aria-label="Modules">
+        {% if hperm.dashboard_view %}<a href="{% url 'dashboard' %}" class="{% if page == 'dashboard' %}on{% endif %}"><span class="nav-ic c-dash"><svg class="ic"><use href="#i-chart"/></svg></span>Tableau de bord</a>{% endif %}
+
+        {% if hperm.board_view or hperm.planning_view %}
+        <button type="button" class="nav-tile {% if page == 'board' or page == 'planning' %}on{% endif %}" data-nav-open="chambres">
+          <span class="nav-ic c-chambres"><svg class="ic"><use href="#i-board"/></svg></span>Chambres<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
+        </button>
+        {% endif %}
+
+        {% if hperm.reservation_view %}<a href="{% url 'reservations' %}" class="{% if page == 'reservations' %}on{% endif %}"><span class="nav-ic c-resa"><svg class="ic"><use href="#i-book"/></svg></span>Réservations</a>{% endif %}
+        {% if hperm.client_view %}<a href="{% url 'clients' %}" class="{% if page == 'clients' %}on{% endif %}"><span class="nav-ic c-clients"><svg class="ic"><use href="#i-users"/></svg></span>Clients</a>{% endif %}
+
+        {% if hperm.billing_view or hperm.shift_manage or hperm.remit_make or hperm.expense_request %}
+        <button type="button" class="nav-tile {% if page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' %}on{% endif %}" data-nav-open="argent">
+          <span class="nav-ic c-argent"><svg class="ic"><use href="#i-wallet"/></svg></span>Argent<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
+        </button>
+        {% endif %}
+
+        {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}
+        <button type="button" class="nav-tile {% if page == 'cleaning' or page == 'kitchen' %}on{% endif %}" data-nav-open="exploitation">
+          <span class="nav-ic c-exploit"><svg class="ic"><use href="#i-broom"/></svg></span>Exploitation<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
+        </button>
+        {% endif %}
+
+        {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}
+        <button type="button" class="nav-tile {% if page == 'reports' or page == 'audit' or page == 'hotels' %}on{% endif %}" data-nav-open="pilotage">
+          <span class="nav-ic c-pilotage"><svg class="ic"><use href="#i-shield"/></svg></span>Pilotage<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
+        </button>
+        {% endif %}
+      </nav>
+
+      {% if hperm.board_view or hperm.planning_view %}
+      <nav class="nav-sub" id="sub-chambres" aria-label="Sous-menu Chambres">
+        <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
+        <b class="nav-sub-title">Chambres</b>
+        {% if hperm.board_view %}<a href="{% url 'board' %}" class="{% if page == 'board' %}on{% endif %}"><span class="nav-ic sm c-chambres"><svg class="ic"><use href="#i-board"/></svg></span>Tableau des chambres</a>{% endif %}
+        {% if hperm.planning_view %}<a href="{% url 'planning' %}" class="{% if page == 'planning' %}on{% endif %}"><span class="nav-ic sm c-chambres"><svg class="ic"><use href="#i-plan"/></svg></span>Planning</a>{% endif %}
+      </nav>
+      {% endif %}
+
+      {% if hperm.billing_view or hperm.shift_manage or hperm.remit_make or hperm.expense_request %}
+      <nav class="nav-sub" id="sub-argent" aria-label="Sous-menu Argent">
+        <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
+        <b class="nav-sub-title">Argent</b>
+        {% if hperm.billing_view %}<a href="{% url 'invoices' %}" class="{% if page == 'invoices' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-receipt"/></svg></span>Factures</a>{% endif %}
+        {% if hperm.shift_manage %}<a href="{% url 'shift' %}" class="{% if page == 'shift' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-cash"/></svg></span>Mon quart</a>{% endif %}
+        {% if hperm.remit_make %}<a href="{% url 'remittances' %}" class="{% if page == 'remittances' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-wallet"/></svg></span>Versements</a>{% endif %}
+        {% if hperm.expense_request %}<a href="{% url 'expenses' %}" class="{% if page == 'expenses' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-out"/></svg></span>Dépenses</a>{% endif %}
+      </nav>
+      {% endif %}
+
+      {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create %}
+      <nav class="nav-sub" id="sub-exploitation" aria-label="Sous-menu Exploitation">
+        <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
+        <b class="nav-sub-title">Exploitation</b>
+        {% if hperm.cleaning_view %}<a href="{% url 'cleaning' %}" class="{% if page == 'cleaning' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-broom"/></svg></span>Ménage</a>{% endif %}
+        {% if hperm.kitchen_view or hperm.order_create %}<a href="{% url 'kitchen_queue' %}" class="{% if page == 'kitchen' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-chef"/></svg></span>Restauration</a>{% endif %}
+      </nav>
+      {% endif %}
+
+      {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}
+      <nav class="nav-sub" id="sub-pilotage" aria-label="Sous-menu Pilotage">
+        <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
+        <b class="nav-sub-title">Pilotage</b>
+        {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-chart"/></svg></span>Rapports</a>{% endif %}
+        {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-shield"/></svg></span>Journal d'audit</a>{% endif %}
+        {% if hperm.hotel_manage %}<a href="{% url 'team' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-users"/></svg></span>Équipe</a>{% endif %}
+        {% if hperm.hotel_manage %}<a href="{% url 'hotel_settings' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-key"/></svg></span>Paramètres hôtel</a>{% endif %}
+        {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-plus"/></svg></span>Mes hôtels</a>{% endif %}
+      </nav>
+      {% endif %}
+    </div>
+    </div>
+
     <div class="side-foot">
       <b>{{ user.display_name }}</b>{{ membership.get_role_display|default:"" }}
       <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn sm on-dark block" type="submit"><svg class="ic" style="width:16px;height:16px"><use href="#i-logout"/></svg>Se déconnecter</button></form>

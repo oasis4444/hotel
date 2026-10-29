@@ -41,20 +41,50 @@ a:hover { text-decoration: underline; }
 
 /* ---------- Structure ---------- */
 .app { display: grid; grid-template-columns: 252px 1fr; min-height: 100vh; }
-.side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; padding: 18px 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+.side { background: var(--side); color: var(--side-ink); display: flex; flex-direction: column; padding: 18px 14px; position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.side-scroll { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; scrollbar-width: thin; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; color: #fff; font: 700 24px var(--f-display); letter-spacing: -.02em; }
-.brand-mark { width: 34px; height: 34px; border-radius: 11px; background: linear-gradient(140deg, #36C2CF, #0B7A86); display: grid; place-items: center; color: #fff; }
+.brand-mark { width: 34px; height: 34px; border-radius: 11px; background: linear-gradient(140deg, #36C2CF, #0B7A86); display: grid; place-items: center; color: #fff; flex: none; }
 .hotel-switch { margin: 0 6px 14px; }
 .hotel-switch select { width: 100%; background: var(--side-2); color: #fff; border: 1px solid rgba(255,255,255,.12); }
 .hotel-name { margin: 0 10px 14px; font-size: 13px; color: var(--side-dim); }
 .hotel-name b { display: block; color: #fff; font: 600 15px var(--f-display); }
-.nav { display: flex; flex-direction: column; gap: 2px; }
-.nav-group { margin: 14px 12px 4px; font-size: 12px; color: var(--side-dim); }
-.nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 11px; color: var(--side-ink); font-weight: 500; }
-.nav a:hover { background: var(--side-2); text-decoration: none; color: #fff; }
-.nav a.on { background: #fff; color: var(--side); font-weight: 700; }
-.nav .badge { margin-left: auto; background: var(--danger); color: #fff; border-radius: 99px; font-size: 12px; padding: 0 8px; min-width: 22px; text-align: center; font-weight: 700; }
-.side-foot { margin-top: auto; padding: 14px 10px 0; border-top: 1px solid rgba(255,255,255,.1); font-size: 13px; }
+
+/* ---------- Menu latéral à deux niveaux ---------- */
+.nav-wrap { display: grid; flex: 1; }
+.nav-main, .nav-sub { grid-row: 1; grid-column: 1; display: flex; flex-direction: column; gap: 3px; transition: opacity .22s ease, transform .22s ease; }
+.nav-main > a, .nav-tile { display: flex; align-items: center; gap: 12px; padding: 9px 11px; border-radius: 13px; color: var(--side-ink); font: 600 14.5px var(--f-body); background: none; border: 0; width: 100%; text-align: left; cursor: pointer; }
+.nav-main > a:hover, .nav-tile:hover { background: var(--side-2); text-decoration: none; color: #fff; }
+.nav-main > a.on, .nav-tile.on { background: #fff; color: var(--side); }
+.nav-chev { margin-left: auto; width: 15px; height: 15px; opacity: .55; stroke-width: 2.4; }
+.nav-ic { width: 34px; height: 34px; border-radius: 11px; display: grid; place-items: center; flex: none; color: #fff; background: var(--side-2); transition: background .15s, box-shadow .15s; }
+.nav-ic .ic { width: 19px; height: 19px; }
+.nav-ic.sm { width: 28px; height: 28px; border-radius: 9px; }
+.nav-ic.sm .ic { width: 16px; height: 16px; }
+.nav-ic.c-dash { background: color-mix(in srgb, var(--lagoon) 55%, var(--side-2)); }
+.nav-ic.c-chambres { background: color-mix(in srgb, var(--occ) 55%, var(--side-2)); }
+.nav-ic.c-resa { background: color-mix(in srgb, var(--resv) 55%, var(--side-2)); }
+.nav-ic.c-clients { background: color-mix(in srgb, var(--free) 55%, var(--side-2)); }
+.nav-ic.c-argent { background: color-mix(in srgb, var(--dirty) 55%, var(--side-2)); }
+.nav-ic.c-exploit { background: color-mix(in srgb, var(--clean) 55%, var(--side-2)); }
+.nav-ic.c-pilotage { background: color-mix(in srgb, var(--maint) 60%, var(--side-2)); }
+.nav-main > a.on .nav-ic, .nav-tile.on .nav-ic, .nav-sub a.on .nav-ic { background: var(--lagoon); box-shadow: 0 0 0 3px color-mix(in srgb, var(--lagoon) 30%, transparent); }
+.nav-sub { opacity: 0; transform: translateX(10px); visibility: hidden; pointer-events: none; }
+.side[data-open] .nav-main { opacity: 0; transform: translateX(-10px); visibility: hidden; pointer-events: none; }
+.side[data-open="chambres"] #sub-chambres, .side[data-open="argent"] #sub-argent,
+.side[data-open="exploitation"] #sub-exploitation, .side[data-open="pilotage"] #sub-pilotage {
+  opacity: 1; transform: translateX(0); visibility: visible; pointer-events: auto;
+}
+.nav-sub-h { padding: 2px 4px 8px; }
+.nav-back { display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; color: var(--side-dim); font: 700 13px var(--f-body); cursor: pointer; padding: 6px 6px 6px 4px; border-radius: 8px; }
+.nav-back:hover { color: #fff; background: var(--side-2); }
+.nav-sub-title { display: block; color: #fff; font: 700 13px var(--f-display); text-transform: uppercase; letter-spacing: .05em; margin: 0 11px 6px; opacity: .75; }
+.nav-sub a { display: flex; align-items: center; gap: 12px; padding: 9px 11px; border-radius: 13px; color: var(--side-ink); font-weight: 500; font-size: 14px; }
+.nav-sub a:hover { background: var(--side-2); text-decoration: none; color: #fff; }
+.nav-sub a.on { background: #fff; color: var(--side); font-weight: 700; }
+.nav .badge, .nav-main .badge, .nav-sub .badge { margin-left: auto; background: var(--danger); color: #fff; border-radius: 99px; font-size: 12px; padding: 0 8px; min-width: 22px; text-align: center; font-weight: 700; }
+
+.side-foot { flex: none; padding: 14px 10px 0; border-top: 1px solid rgba(255,255,255,.1); font-size: 13px; }
 .side-foot b { display: block; color: #fff; }
 .side-foot button { margin-top: 8px; }
 .main { min-width: 0; }

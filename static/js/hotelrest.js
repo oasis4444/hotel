@@ -20,6 +20,16 @@
     else if (document.body.classList.contains("nav-open") && !e.target.closest(".side")) document.body.classList.remove("nav-open");
   });
 
+  /* Menu latéral : drill-down module -> sous-menu, avec retour */
+  var side = $(".side");
+  if (side) {
+    document.addEventListener("click", function (e) {
+      var open = e.target.closest("[data-nav-open]");
+      if (open) side.setAttribute("data-open", open.getAttribute("data-nav-open"));
+      else if (e.target.closest("[data-nav-back]")) side.removeAttribute("data-open");
+    });
+  }
+
   /* Horloge */
   function clock() {
     var c = $("#clock"); if (!c) return;
