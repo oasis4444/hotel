@@ -63,6 +63,9 @@ def dashboard(request):
         "kitchen_open": Order.objects.filter(hotel=hotel, status__in=[
             Order.Status.REQUESTED, Order.Status.NEW, Order.Status.PREPARING, Order.Status.READY]).count(),
         "arrivals": arrivals[:15],
+        "low_stock": len(__import__("stock.services", fromlist=["x"]).low_stock_items(hotel)),
+        "open_tickets": __import__("frontdesk.models", fromlist=["x"]).MaintenanceTicket.objects.filter(
+            hotel=hotel).exclude(status="done").count(),
         "memberships": request.memberships,
         "page": "dashboard",
     })

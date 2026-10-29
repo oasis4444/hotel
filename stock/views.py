@@ -26,6 +26,7 @@ def items(request):
                 supplier_id=request.POST.get("supplier") or None,
                 cost_price=int(request.POST.get("cost_price") or 0),
                 low_stock_threshold=request.POST.get("low_stock_threshold") or 0,
+                expiry_date=request.POST.get("expiry_date") or None,
             )
             messages.success(request, "Article ajouté au stock.")
         except (ValidationError, ValueError) as e:
@@ -36,6 +37,56 @@ def items(request):
         "items": qs, "low": [i for i in qs if i.is_active and i.is_low],
         "units": StockItem.Unit.choices, "kinds": StockMovement.Kind.choices,
         "suppliers": Supplier.objects.filter(hotel=hotel, is_active=True), "page": "stock",
+    })
+
+
+@perm_required("stock.view")
+def consumption(request):
+    """Rapport de consommation sur une période, par article (sorties = recettes, pertes, sorties manuelles)."""
+    import csv
+    from collections import defaultdict
+    from datetime import datetime, timedelta
+
+    from django.http import HttpResponse
+    from django.utils import timezone
+
+    today = timezone.localdate()
+    try:
+        d1 = datetime.strptime(request.GET.get("from", ""), "%Y-%m-%d").date()
+    except ValueError:
+        d1 = today - timedelta(days=29)
+    try:
+        d2 = datetime.strptime(request.GET.get("to", ""), "%Y-%m-%d").date()
+    except ValueError:
+        d2 = today
+    start = timezone.make_aware(datetime.combine(d1, datetime.min.time()))
+    end = timezone.make_aware(datetime.combine(d2, datetime.min.time())) + timedelta(days=1)
+    rows = defaultdict(lambda: {"recipe": 0.0, "manual": 0.0, "loss": 0.0, "cost": 0})
+    qs = StockMovement.objects.filter(
+        hotel=request.hotel, created_at__gte=start, created_at__lt=end,
+        kind__in=[StockMovement.Kind.OUT, StockMovement.Kind.LOSS],
+    ).select_related("item")
+    for m in qs:
+        r = rows[m.item]
+        q = float(m.quantity)
+        if m.kind == StockMovement.Kind.LOSS:
+            r["loss"] += q
+        elif m.order_id:
+            r["recipe"] += q
+        else:
+            r["manual"] += q
+        r["cost"] += round(q * m.item.cost_price)
+    data = sorted(rows.items(), key=lambda x: -x[1]["cost"])
+    if request.GET.get("export") == "csv":
+        resp = HttpResponse(content_type="text/csv; charset=utf-8")
+        resp["Content-Disposition"] = f'attachment; filename="consommation_{d1}_{d2}.csv"'
+        w = csv.writer(resp, delimiter=";")
+        w.writerow(["Article", "Unité", "Recettes", "Sorties manuelles", "Pertes", "Coût estimé (Ar)"])
+        for item, r in data:
+            w.writerow([item.name, item.get_unit_display(), r["recipe"], r["manual"], r["loss"], r["cost"]])
+        return resp
+    return render(request, "stock/consumption.html", {
+        "rows": data, "d1": d1, "d2": d2, "total_cost": sum(r["cost"] for _, r in data), "page": "stock",
     })
 
 

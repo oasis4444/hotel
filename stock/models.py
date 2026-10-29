@@ -35,6 +35,7 @@ class StockItem(models.Model):
     cost_price = models.PositiveIntegerField("Dernier prix d'achat (Ar/unité)", default=0)
     quantity = models.DecimalField("Quantité en stock", max_digits=10, decimal_places=2, default=0)
     low_stock_threshold = models.DecimalField("Seuil d'alerte", max_digits=10, decimal_places=2, default=0)
+    expiry_date = models.DateField("Date de péremption", null=True, blank=True)
     is_active = models.BooleanField("Actif", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -49,6 +50,14 @@ class StockItem(models.Model):
     @property
     def is_low(self):
         return self.low_stock_threshold > 0 and self.quantity <= self.low_stock_threshold
+
+    @property
+    def expires_soon(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        return bool(self.expiry_date) and self.expiry_date <= timezone.localdate() + timedelta(days=7)
 
 
 class StockMovement(models.Model):

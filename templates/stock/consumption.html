@@ -1,0 +1,19 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Consommation{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Consommation du stock</h1><p>Coût estimé au dernier prix d'achat : {{ total_cost|ar }}.</p></div>
+<a href="{% url 'stock_items' %}" class="btn">Retour au stock</a></div>
+<div class="card" style="margin-bottom:20px">
+  <form method="get" class="row" style="align-items:flex-end;gap:16px">
+    <div><label for="d1" class="small muted">Du</label><input id="d1" type="date" name="from" value="{{ d1|date:'Y-m-d' }}"></div>
+    <div><label for="d2" class="small muted">Au</label><input id="d2" type="date" name="to" value="{{ d2|date:'Y-m-d' }}"></div>
+    <button class="btn sm primary" type="submit">Filtrer</button>
+    <a class="btn sm" href="?from={{ d1|date:'Y-m-d' }}&to={{ d2|date:'Y-m-d' }}&export=csv">Exporter (Excel/CSV)</a>
+  </form>
+</div>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Article</th><th class="num">Recettes</th><th class="num">Sorties manuelles</th><th class="num">Pertes</th><th class="num">Coût estimé</th></tr></thead><tbody>
+{% for item, r in rows %}<tr><td><b>{{ item.name }}</b> <span class="small muted">({{ item.get_unit_display }})</span></td>
+  <td class="num">{{ r.recipe|floatformat:2 }}</td><td class="num">{{ r.manual|floatformat:2 }}</td><td class="num">{{ r.loss|floatformat:2 }}</td><td class="num">{{ r.cost|ar }}</td></tr>
+{% empty %}<tr><td colspan="5" class="empty"><b>Aucune consommation</b>sur cette période.</td></tr>{% endfor %}
+</tbody></table></div></div>
+{% endblock %}

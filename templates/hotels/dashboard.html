@@ -52,6 +52,12 @@
     <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
       <span>Quarts ouverts</span><b>{{ open_shifts.count }}</b>
     </div>
+    <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span>Articles en stock bas</span><b {% if low_stock %}style="color:var(--danger)"{% endif %}>{{ low_stock }}</b>
+    </div>
+    <div class="row between" style="padding:8px 0;border-bottom:1px solid var(--line)">
+      <span>Tickets de maintenance ouverts</span><b {% if open_tickets %}style="color:var(--warn)"{% endif %}>{{ open_tickets }}</b>
+    </div>
     {% for s in open_shifts %}
       <div class="small muted" style="padding:4px 0">{{ s.user.display_name|default:s.user.username }} · depuis {{ s.opened_at|hm }}</div>
     {% endfor %}
