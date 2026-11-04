@@ -1,0 +1,44 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Tarifs et chambres{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Tarifs et chambres</h1><p>Formules de prix, types de chambre et chambres de {{ current_hotel.name }}. La tolérance se règle dans <a href="{% url 'hotel_settings' %}">Paramètres hôtel</a>.</p></div></div>
+<div class="card"><div class="card-h"><h2>Formules tarifaires</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Formule</th><th>Type</th><th>Durée / plage</th><th class="num">Tarif</th><th></th></tr></thead><tbody>
+{% for f in formulas %}<tr {% if not f.is_active %}style="opacity:.5"{% endif %}><td><b>{{ f.name }}</b></td><td>{{ f.get_kind_display }}</td><td>{{ f.plage }}</td><td class="num">{{ f.price|ar }}</td>
+<td class="right"><details class="more"><summary>Modifier</summary>
+<form method="post" class="fields" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="what" value="formula"><input type="hidden" name="id" value="{{ f.pk }}">
+ <div><label>Nom</label><input type="text" name="name" value="{{ f.name }}" required></div>
+ <div><label>Type</label><select name="kind"><option value="hourly" {% if f.kind == 'hourly' %}selected{% endif %}>Durée fixe</option><option value="window" {% if f.kind == 'window' %}selected{% endif %}>Plage horaire</option></select></div>
+ <div><label>Tarif (Ar)</label><input type="number" name="price" min="0" value="{{ f.price }}" required></div>
+ <div><label>Durée (min)</label><input type="number" name="duration_minutes" min="1" value="{{ f.duration_minutes }}"></div>
+ <div><label>Début plage (h)</label><input type="number" name="start_hour" min="0" max="23" value="{{ f.start_hour }}"></div>
+ <div><label>Fin plage (h)</label><input type="number" name="end_hour" min="0" max="23" value="{{ f.end_hour }}"></div>
+ <div><label>Durée minimale plage (min)</label><input type="number" name="min_minutes" min="0" value="{{ f.min_minutes }}"></div>
+ <div><label>Ordre</label><input type="number" name="sort_order" value="{{ f.sort_order }}"></div>
+ <div><label><input type="checkbox" name="end_next_day" {% if f.end_next_day %}checked{% endif %}> Fin le lendemain</label></div>
+ <div><button class="btn primary">Enregistrer</button></div></form>
+<form method="post" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="what" value="formula_toggle"><input type="hidden" name="id" value="{{ f.pk }}"><button class="btn sm ghost">{% if f.is_active %}Désactiver{% else %}Réactiver{% endif %}</button></form></details></td></tr>
+{% empty %}<tr><td colspan="5" class="empty"><b>Aucune formule</b>Ajoutez-en une ci-dessous.</td></tr>{% endfor %}</tbody></table></div>
+<details class="more" style="margin-top:14px"><summary>+ Nouvelle formule</summary>
+<form method="post" class="fields" style="margin-top:10px">{% csrf_token %}<input type="hidden" name="what" value="formula">
+ <div><label>Nom (ex. Nuitée)</label><input type="text" name="name" required></div>
+ <div><label>Type</label><select name="kind"><option value="hourly">Durée fixe (ex. 2H)</option><option value="window">Plage horaire (ex. Nuitée 18h→10h)</option></select></div>
+ <div><label>Tarif (Ar)</label><input type="number" name="price" min="0" required></div>
+ <div><label>Durée (min) [durée fixe]</label><input type="number" name="duration_minutes" min="1" value="60"></div>
+ <div><label>Début plage (h)</label><input type="number" name="start_hour" min="0" max="23" value="18"></div>
+ <div><label>Fin plage (h)</label><input type="number" name="end_hour" min="0" max="23" value="10"></div>
+ <div><label>Durée minimale plage (min)</label><input type="number" name="min_minutes" min="0" value="0"></div>
+ <div><label>Ordre</label><input type="number" name="sort_order" value="0"></div>
+ <div><label><input type="checkbox" name="end_next_day"> Fin le lendemain</label></div>
+ <div><button class="btn primary">Ajouter la formule</button></div></form></details></div>
+
+<div class="split" style="margin-top:20px">
+<div class="card"><div class="card-h"><h2>Types de chambre</h2></div>
+<table class="t"><thead><tr><th>Type</th><th>Personnes</th><th></th></tr></thead><tbody>
+{% for t in types %}<tr><td>{{ t.name }}</td><td>{{ t.capacity }}</td><td class="right"><details class="more"><summary>Modifier</summary><form method="post" class="row" style="margin-top:8px">{% csrf_token %}<input type="hidden" name="what" value="type"><input type="hidden" name="id" value="{{ t.pk }}"><input type="text" name="name" value="{{ t.name }}" required aria-label="Nom"><input type="number" name="capacity" min="1" value="{{ t.capacity }}" style="width:70px" aria-label="Personnes"><button class="btn sm primary">OK</button></form></details></td></tr>{% endfor %}</tbody></table>
+<form method="post" class="row" style="margin-top:12px">{% csrf_token %}<input type="hidden" name="what" value="type"><input type="text" name="name" placeholder="Nouveau type (ex. Double)" required><input type="number" name="capacity" min="1" value="2" style="width:70px" aria-label="Personnes"><button class="btn">Ajouter</button></form></div>
+<div class="card"><div class="card-h"><h2>Chambres</h2></div>
+<table class="t"><tbody>{% for r in rooms %}<tr {% if not r.is_active %}style="opacity:.5"{% endif %}><td><b>{{ r.number }}</b></td><td>{{ r.room_type.name }}</td><td>{{ r.floor }}</td><td class="right"><form method="post">{% csrf_token %}<input type="hidden" name="what" value="room_toggle"><input type="hidden" name="id" value="{{ r.pk }}"><button class="btn sm ghost">{% if r.is_active %}Retirer{% else %}Réactiver{% endif %}</button></form></td></tr>{% endfor %}</tbody></table>
+<form method="post" class="row" style="margin-top:12px;flex-wrap:wrap">{% csrf_token %}<input type="hidden" name="what" value="room"><input type="text" name="number" placeholder="N°" required style="width:80px"><select name="room_type" required aria-label="Type">{% for t in types %}<option value="{{ t.pk }}">{{ t.name }}</option>{% endfor %}</select><input type="text" name="floor" placeholder="Étage" style="width:90px"><button class="btn">Ajouter la chambre</button></form></div>
+</div>
+{% endblock %}

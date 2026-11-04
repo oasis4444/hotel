@@ -58,6 +58,10 @@ def live(request):
 @perm_required("planning.view")
 def planning(request):
     hotel = request.hotel
+    if request.GET.get("vue") in ("week", "month"):
+        from .views_ext import planning_grid
+
+        return planning_grid(request, request.GET["vue"])
     try:
         day = datetime.strptime(request.GET.get("date", ""), "%Y-%m-%d").date()
     except ValueError:
@@ -220,7 +224,13 @@ def cleaning(request):
     hotel = request.hotel
     open_tasks = CleaningTask.objects.filter(hotel=hotel).exclude(status=CleaningTask.Status.VERIFIED).select_related("room")
     done = CleaningTask.objects.filter(hotel=hotel, status=CleaningTask.Status.VERIFIED).select_related("room", "worked_by")[:15]
-    return render(request, "frontdesk/cleaning.html", {"open_tasks": open_tasks, "done": done, "page": "cleaning"})
+    from hotels.models import Membership
+
+    staff = Membership.objects.filter(hotel=hotel, role=Membership.Role.HOUSEKEEPER, is_active=True).select_related("user")
+    return render(request, "frontdesk/cleaning.html", {
+        "open_tasks": open_tasks, "done": done, "staff": staff, "page": "cleaning",
+        "can_assign": has_perm(request.membership, "cleaning.verify"),
+        "mine": request.user.pk})
 
 
 @perm_required("cleaning.view")
@@ -232,6 +242,23 @@ def cleaning_action(request, pk, action):
             if not has_perm(request.membership, "cleaning.work"):
                 raise ValidationError("Réservé au personnel de ménage.")
             (fs.cleaning_start if action == "start" else fs.cleaning_done)(request, task)
+        elif action == "assign":
+            if not has_perm(request.membership, "cleaning.verify"):
+                raise ValidationError("L'attribution est faite par la réception.")
+            from hotels.models import Membership
+
+            uid = to_int(request.POST.get("user"), 0)
+            if uid:
+                if not Membership.objects.filter(hotel=request.hotel, user_id=uid, is_active=True).exists():
+                    raise ValidationError("Employé inconnu.")
+                task.assigned_to_id = uid
+            else:
+                task.assigned_to = None
+            task.save(update_fields=["assigned_to"])
+            from audit.service import record
+
+            record(request, "cleaning.assign", task, after={"assigned_to": str(task.assigned_to or "—")}, hotel=request.hotel)
+            messages.success(request, f"Chambre {task.room.number} attribuée.")
         elif action == "verify":
             if not has_perm(request.membership, "cleaning.verify"):
                 raise ValidationError("Le contrôle est fait par la réception.")

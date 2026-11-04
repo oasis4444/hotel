@@ -1,0 +1,35 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Linge{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Suivi du linge</h1><p>Draps, serviettes, couvertures : possédé, disponible, à la blanchisserie, perdu ou abîmé.</p></div></div>
+<div class="grid g4" style="margin-bottom:20px">
+  <div class="card kpi"><b>{{ totals.total }}</b><span>Pièces possédées</span></div>
+  <div class="card kpi"><b>{{ totals.ok }}</b><span>Disponibles</span></div>
+  <div class="card kpi"><b>{{ totals.laundry }}</b><span>À la blanchisserie</span></div>
+  <div class="card kpi"><b {% if totals.lost %}style="color:var(--danger)"{% endif %}>{{ totals.lost }}</b><span>Perdues / abîmées</span></div>
+</div>
+<div class="split">
+<div class="card"><div class="card-h"><h2>Stock de linge</h2></div>
+<div class="table-wrap"><table class="t"><thead><tr><th>Linge</th><th class="num">Possédé</th><th class="num">Disponible</th><th class="num">Blanchisserie</th><th class="num">Perdu/abîmé</th></tr></thead><tbody>
+{% for i in items %}<tr><td><b>{{ i.name }}</b></td><td class="num">{{ i.total }}</td><td class="num">{{ i.available }}</td><td class="num">{{ i.in_laundry }}</td><td class="num">{{ i.lost }}</td></tr>
+{% empty %}<tr><td colspan="5" class="empty"><b>Aucun linge suivi</b>Ajoutez « Drap 2 places », « Serviette »…</td></tr>{% endfor %}</tbody></table></div>
+<div class="card-h" style="margin-top:22px"><h2>Derniers mouvements</h2></div>
+<table class="t"><thead><tr><th>Date</th><th>Linge</th><th>Mouvement</th><th class="num">Qté</th><th>Chambre / note</th><th>Par</th></tr></thead><tbody>
+{% for m in moves %}<tr><td class="nowrap">{{ m.created_at|dm }}</td><td>{{ m.item.name }}</td><td>{{ m.get_kind_display }}</td><td class="num">{{ m.quantity }}</td><td>{% if m.room %}Ch. {{ m.room.number }} {% endif %}{{ m.note }}</td><td>{{ m.user.display_name|default:"—" }}</td></tr>
+{% empty %}<tr><td colspan="6" class="muted">Aucun mouvement.</td></tr>{% endfor %}</tbody></table></div>
+{% if can %}<div class="stack">
+<div class="card"><div class="card-h"><h2>Mouvement</h2></div>
+  <form method="post" action="{% url 'linen_move' %}" class="stack">{% csrf_token %}
+    <div><label for="li">Linge</label><select id="li" name="item" required>{% for i in items %}<option value="{{ i.pk }}">{{ i.name }}</option>{% endfor %}</select></div>
+    <div><label for="lk">Type</label><select id="lk" name="kind">{% for v, l in kinds %}<option value="{{ v }}">{{ l }}</option>{% endfor %}</select></div>
+    <div><label for="lq">Quantité</label><input id="lq" type="number" name="quantity" min="1" required></div>
+    <div><label for="lr">Chambre (facultatif)</label><select id="lr" name="room"><option value="">—</option>{% for r in rooms %}<option value="{{ r.pk }}">{{ r.number }}</option>{% endfor %}</select></div>
+    <div><label for="ln">Note</label><input id="ln" type="text" name="note"></div>
+    <button class="btn primary block">Enregistrer</button></form></div>
+<div class="card"><div class="card-h"><h2>Nouveau type de linge</h2></div>
+  <form method="post" class="stack">{% csrf_token %}
+    <div><label for="nn">Nom</label><input id="nn" type="text" name="name" required></div>
+    <div><label for="nt">Quantité possédée</label><input id="nt" type="number" name="total" min="0" value="0"></div>
+    <button class="btn block">Ajouter</button></form></div></div>{% endif %}
+</div>
+{% endblock %}

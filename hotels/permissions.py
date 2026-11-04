@@ -10,7 +10,7 @@ RECEPTION = {
     "stay.checkin", "stay.checkout", "stay.extend", "client.view", "client.edit",
     "billing.view", "billing.pay", "shift.manage", "expense.request", "expense.approve", "expense.pay",
     "remit.make", "cleaning.verify", "cleaning.view", "planning.view",
-    "order.create", "order.deliver", "kitchen.menu_view", "table.manage", "maintenance.view", "maintenance.report",
+    "order.create", "order.deliver", "report.daily", "kitchen.menu_view", "table.manage", "maintenance.view", "maintenance.report",
 }
 
 ROLE_PERMS = {

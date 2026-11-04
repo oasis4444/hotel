@@ -43,13 +43,13 @@ def find_conflicts(room, start, end, exclude=None, now=None):
     return [r for r in qs if start < busy_end(r, now) + gap]
 
 
-def validate_slot(room, formula, start, exclude=None, now=None, allow_past=False):
+def validate_slot(room, formula, start, exclude=None, now=None, allow_past=False, nights=1):
     now = now or timezone.now()
     if room.status in (Room.Status.MAINTENANCE, Room.Status.OUT_OF_SERVICE) or not room.is_active:
         raise ValidationError(f"La chambre {room.number} est retirée de la vente.")
     if start < now - timedelta(minutes=15) and not allow_past:
         raise ValidationError("L'heure de début est déjà passée.")
-    s, e = formula.compute_slot(start)
+    s, e = formula.compute_slot(start, nights)
     conflicts = find_conflicts(room, s, e, exclude=exclude, now=now)
     if conflicts:
         c = conflicts[0]
@@ -58,35 +58,50 @@ def validate_slot(room, formula, start, exclude=None, now=None, allow_past=False
     return s, e
 
 
-def available_rooms(hotel, formula, start, now=None, exclude=None):
+def available_rooms(hotel, formula, start, now=None, exclude=None, nights=1):
     """Chambres vendables pour (formule, début). Renvoie [(chambre, début, fin)]."""
     now = now or timezone.now()
     out = []
     for room in Room.objects.filter(hotel=hotel, is_active=True).select_related("room_type", "hotel"):
         try:
-            s, e = validate_slot(room, formula, start, now=now, exclude=exclude)
+            s, e = validate_slot(room, formula, start, now=now, exclude=exclude, nights=nights)
             out.append((room, s, e))
         except ValidationError:
             continue
     return out
 
 
+def _stay_numbers(room, formula, nights, guests):
+    """Nuits (plages horaires seulement) et personnes, contrôlés."""
+    nights = max(int(nights or 1), 1)
+    guests = max(int(guests or 1), 1)
+    if formula.kind != Formula.WINDOW:
+        nights = 1
+    elif nights > 60:
+        raise ValidationError("Un séjour est limité à 60 nuits.")
+    cap = room.room_type.capacity
+    if guests > cap:
+        raise ValidationError(f"La chambre {room.number} ({room.room_type.name}) accueille {cap} personne{'s' if cap > 1 else ''} au maximum.")
+    return nights, guests
+
+
 def snap(res):
     return {
         "code": res.code, "status": res.status, "room": res.room.number, "formula": res.formula.name,
-        "start": res.start_at, "end": res.end_at,
+        "start": res.start_at, "end": res.end_at, "nights": res.nights, "guests": res.guests,
     }
 
 
 # ---------------------------------------------------------------- création
 @transaction.atomic
-def create_reservation(request, hotel, room_id, formula_id, start, source, guest_name, phone="", notes="", client=None):
+def create_reservation(request, hotel, room_id, formula_id, start, source, guest_name, phone="", notes="", client=None, nights=1, guests=1):
     if not guest_name.strip():
         raise ValidationError("Le nom du client est obligatoire.")
     room = Room.objects.select_for_update().select_related("hotel").get(pk=room_id, hotel=hotel)
     formula = Formula.objects.get(pk=formula_id, hotel=hotel, is_active=True)
     now = timezone.now()
-    s, e = validate_slot(room, formula, start, now=now)
+    nights, guests = _stay_numbers(room, formula, nights, guests)
+    s, e = validate_slot(room, formula, start, now=now, nights=nights)
     code = f"R{Sequence.next(hotel, 'reservation'):05d}"
     if source == Reservation.Source.ONLINE:
         status = S.PENDING
@@ -97,7 +112,7 @@ def create_reservation(request, hotel, room_id, formula_id, start, source, guest
     user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
     res = Reservation.objects.create(
         hotel=hotel, code=code, room=room, formula=formula, client=client, guest_name=guest_name.strip(),
-        phone=phone.strip(), start_at=s, end_at=e, source=source, status=status, notes=notes,
+        phone=phone.strip(), start_at=s, end_at=e, source=source, status=status, notes=notes, nights=nights, guests=guests,
         created_by=user, accepted_by=user if status != S.PENDING else None,
         call_result=Reservation.Call.CONFIRMED if status == S.CONFIRMED else "",
     )
@@ -109,15 +124,17 @@ def create_reservation(request, hotel, room_id, formula_id, start, source, guest
 
 
 @transaction.atomic
-def modify_reservation(request, res, room_id, formula_id, start, guest_name, phone, notes):
+def modify_reservation(request, res, room_id, formula_id, start, guest_name, phone, notes, nights=1, guests=1):
     if not res.is_active_pre:
         raise ValidationError("Cette réservation ne peut plus être modifiée.")
     before = snap(res)
     room = Room.objects.select_for_update().select_related("hotel").get(pk=room_id, hotel=res.hotel)
     formula = Formula.objects.get(pk=formula_id, hotel=res.hotel, is_active=True)
-    s, e = validate_slot(room, formula, start, exclude=res)
-    price_changed = formula.pk != res.formula_id
+    nights, guests = _stay_numbers(room, formula, nights, guests)
+    s, e = validate_slot(room, formula, start, exclude=res, nights=nights)
+    price_changed = formula.pk != res.formula_id or nights != res.nights or room.pk != res.room_id
     res.room, res.formula, res.start_at, res.end_at = room, formula, s, e
+    res.nights, res.guests = nights, guests
     res.guest_name, res.phone, res.notes = guest_name.strip() or res.guest_name, phone.strip(), notes
     res.save()
     if price_changed and hasattr(res, "invoice"):

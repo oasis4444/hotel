@@ -170,9 +170,9 @@ details.more { border-top: 1px solid var(--line); padding-top: 12px; margin-top:
 .tile .st { font-weight: 700; color: var(--c); } .tile .sub { font-size: 13px; color: var(--ink-2); }
 .tile .who { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile-foot { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
-.ring { --p: 0; width: 58px; height: 58px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c) calc(var(--p) * 1%), color-mix(in srgb, var(--c) 18%, transparent) 0); position: relative; flex: none; }
-.ring::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: var(--surface); }
-.ring span { position: relative; font: 700 11.5px var(--f-display); font-variant-numeric: tabular-nums; }
+.ring { --p: 0; width: 68px; height: 68px; border-radius: 50%; display: grid; place-items: center; background: conic-gradient(var(--c) calc(var(--p) * 1%), color-mix(in srgb, var(--c) 18%, transparent) 0); position: relative; flex: none; }
+.ring::before { content: ""; position: absolute; inset: 5px; border-radius: 50%; background: var(--surface); }
+.ring span { position: relative; z-index: 1; white-space: nowrap; letter-spacing: -.02em; line-height: 1; font: 700 12px var(--f-display); font-variant-numeric: tabular-nums; }
 .cd.warn { color: var(--warn); } .cd.over { color: var(--danger); }
 .tile.over { box-shadow: 0 0 0 2px var(--danger); animation: pulse 1.8s ease-in-out infinite; }
 @keyframes pulse { 50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--danger) 30%, transparent); } }

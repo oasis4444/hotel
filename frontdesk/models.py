@@ -93,6 +93,11 @@ class Expense(models.Model):
         SUPPLIES = "supplies", "Produits et fournitures"
         REPAIR = "repair", "Réparation"
         UTILITY = "utility", "JIRAMA, eau, internet"
+        SALARY = "salary", "Salaires"
+        FUEL = "fuel", "Carburant / groupe électrogène"
+        RENT = "rent", "Loyer"
+        TAX = "tax", "Impôts et taxes"
+        TRANSPORT = "transport", "Transport"
         OTHER = "other", "Autre"
 
     hotel = models.ForeignKey("hotels.Hotel", on_delete=models.CASCADE, related_name="expenses")
@@ -136,6 +141,7 @@ class CleaningTask(models.Model):
     started_at = models.DateTimeField(null=True, blank=True)
     done_at = models.DateTimeField(null=True, blank=True)
     verified_at = models.DateTimeField(null=True, blank=True)
+    assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="assigned_cleanings")
     worked_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     verified_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
 
@@ -186,3 +192,52 @@ class MaintenanceTicket(models.Model):
 
     def __str__(self):
         return f"{self.title} · {self.room or 'général'}"
+
+
+class LinenItem(models.Model):
+    """Type de linge suivi en quantité (draps, serviettes...)."""
+
+    hotel = models.ForeignKey("hotels.Hotel", on_delete=models.CASCADE, related_name="linen_items")
+    name = models.CharField("Linge", max_length=60)
+    total = models.PositiveIntegerField("Quantité possédée", default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+        unique_together = ("hotel", "name")
+        verbose_name = "Linge"
+
+    def _sum(self, kind):
+        return sum(m.quantity for m in self.movements.all() if m.kind == kind)
+
+    @property
+    def in_laundry(self):
+        return max(self._sum("laundry_out") - self._sum("laundry_in"), 0)
+
+    @property
+    def lost(self):
+        return self._sum("lost") + self._sum("damaged")
+
+    @property
+    def available(self):
+        return max(self.total - self.in_laundry - self.lost, 0)
+
+
+class LinenMovement(models.Model):
+    class Kind(models.TextChoices):
+        LAUNDRY_OUT = "laundry_out", "Envoyé à la blanchisserie"
+        LAUNDRY_IN = "laundry_in", "Revenu propre"
+        LOST = "lost", "Perdu"
+        DAMAGED = "damaged", "Abîmé / réformé"
+        ADDED = "added", "Achat / ajout"
+
+    item = models.ForeignKey(LinenItem, on_delete=models.CASCADE, related_name="movements")
+    kind = models.CharField(max_length=12, choices=Kind.choices)
+    quantity = models.PositiveIntegerField()
+    room = models.ForeignKey("hotels.Room", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    note = models.CharField(max_length=200, blank=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]

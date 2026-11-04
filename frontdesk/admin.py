@@ -39,3 +39,16 @@ class CleaningTaskAdmin(admin.ModelAdmin):
 class MaintenanceTicketAdmin(admin.ModelAdmin):
     list_display = ("title", "hotel", "room", "priority", "status", "created_at")
     list_filter = ("hotel", "status", "priority")
+
+
+from .models import LinenItem, LinenMovement  # noqa: E402
+
+
+@admin.register(LinenItem)
+class LinenItemAdmin(admin.ModelAdmin):
+    list_display = ("name", "hotel", "total", "is_active")
+
+
+@admin.register(LinenMovement)
+class LinenMovementAdmin(admin.ModelAdmin):
+    list_display = ("item", "kind", "quantity", "room", "created_at")

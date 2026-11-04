@@ -2,16 +2,24 @@
 {% block title %}Réservations{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>Réservations</h1><p>Les demandes en ligne apparaissent en tête de « À traiter ».</p></div>
-  <div class="row"><form method="get"><input type="search" name="q" value="{{ q }}" placeholder="Nom, téléphone, code, chambre" aria-label="Rechercher"></form>
-  {% if hperm.reservation_create %}<a class="btn primary" href="{% url 'reservation_new' %}"><svg class="ic"><use href="#i-plus"/></svg>Nouvelle</a>{% endif %}</div></div>
+  <div class="row">{% if hperm.reservation_create %}<a class="btn primary" href="{% url 'reservation_new' %}"><svg class="ic"><use href="#i-plus"/></svg>Nouvelle</a>{% endif %}</div></div>
+<div class="card" style="margin-bottom:16px"><form method="get" class="row" style="flex-wrap:wrap;align-items:flex-end;gap:12px">
+  <div><label class="small muted" for="fq">Client / code / tél.</label><input id="fq" type="search" name="q" value="{{ q }}" placeholder="Nom, téléphone, code"></div>
+  <div><label class="small muted" for="ff">Du</label><input id="ff" type="date" name="from" value="{{ f.from }}"></div>
+  <div><label class="small muted" for="ft">Au</label><input id="ft" type="date" name="to" value="{{ f.to }}"></div>
+  <div><label class="small muted" for="fr">Chambre</label><select id="fr" name="room"><option value="">Toutes</option>{% for r in rooms_all %}<option value="{{ r.number }}" {% if f.room == r.number %}selected{% endif %}>{{ r.number }}</option>{% endfor %}</select></div>
+  <div><label class="small muted" for="fs">Origine</label><select id="fs" name="source"><option value="">Toutes</option>{% for v, l in sources %}<option value="{{ v }}" {% if f.source == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <div><label class="small muted" for="fst">Statut</label><select id="fst" name="status"><option value="">Tous</option>{% for v, l in statuses %}<option value="{{ v }}" {% if f.status == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select></div>
+  <button class="btn sm primary" type="submit">Filtrer</button>{% if filtering %}<a class="btn sm" href="{% url 'reservations' %}">Effacer</a>{% endif %}
+</form></div>
 <div class="tabs">{% for k, l in tabs %}<a href="?tab={{ k }}" class="{% if tab == k %}on{% endif %}">{{ l }}{% if k == 'todo' and counts.todo %} ({{ counts.todo }}){% endif %}{% if k == 'stay' and counts.stay %} ({{ counts.stay }}){% endif %}</a>{% endfor %}</div>
-<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Code</th><th>Client</th><th>Chambre</th><th>Formule</th><th>Arrivée</th><th>Fin</th><th>Statut</th><th></th></tr></thead><tbody>
+<div class="card"><div class="table-wrap"><table class="t"><thead><tr><th>Code</th><th>Client</th><th>Chambre</th><th>Formule</th><th>Pers.</th><th>Arrivée</th><th>Fin</th><th>Statut</th><th></th></tr></thead><tbody>
 {% for r in items %}<tr>
-  <td><b>{{ r.code }}</b>{% if r.source == 'online' %}<br><span class="small muted">en ligne</span>{% endif %}</td>
+  <td><b>{{ r.code }}</b>{% if r.source != 'onsite' %}<br><span class="small muted">{{ r.get_source_display }}</span>{% endif %}</td>
   <td>{{ r.guest_name }}<br><span class="small muted">{{ r.phone }}</span></td>
-  <td>{{ r.room.number }}</td><td>{{ r.formula.name }}</td><td class="nowrap">{{ r.start_at|dm }}</td><td class="nowrap">{{ r.end_at|dm }}</td>
+  <td>{{ r.room.number }}</td><td>{{ r.formula.name }}{% if r.nights > 1 %} ×{{ r.nights }}{% endif %}</td><td>{{ r.guests }}</td><td class="nowrap">{{ r.start_at|dm }}</td><td class="nowrap">{{ r.end_at|dm }}</td>
   <td><span class="pill {{ r.status }}">{{ r.get_status_display }}</span></td>
   <td class="right"><a class="btn sm" href="{% url 'reservation_detail' r.pk %}">Ouvrir</a></td></tr>
-{% empty %}<tr><td colspan="8" class="empty"><b>Aucune réservation ici</b>Changez d'onglet ou créez une réservation.</td></tr>{% endfor %}
+{% empty %}<tr><td colspan="9" class="empty"><b>Aucune réservation ici</b>Changez d'onglet ou créez une réservation.</td></tr>{% endfor %}
 </tbody></table></div></div>
 {% endblock %}

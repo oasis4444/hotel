@@ -17,6 +17,9 @@
       <label class="small"><input type="checkbox" name="remove_logo" value="1"> Retirer le logo actuel</label></div>{% endif %}
     <input id="l" type="file" name="logo" accept="image/*">
   </div>
+  <div class="card-h" style="margin-top:8px"><h2>Règles de fonctionnement</h2></div>
+  {% for f, l, v in rules %}<div><label for="r_{{ f }}">{{ l }} ({% if f == 'cash_variance_alert' or f == 'expense_manager_threshold' %}Ar{% else %}min{% endif %})</label><input id="r_{{ f }}" type="number" min="0" name="{{ f }}" value="{{ v }}"></div>{% endfor %}
+  <div class="hint">La tolérance de dépassement est le délai accordé après la fin d'un créneau avant d'alerter ou de bloquer. <a href="{% url 'tariffs' %}">Gérer les tarifs et chambres →</a></div>
   <button class="btn primary block" type="submit">Enregistrer</button>
 </form>
 <div class="card"><div class="card-h"><h2>Aperçu</h2></div>

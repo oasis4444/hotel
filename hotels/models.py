@@ -142,8 +142,9 @@ class Formula(models.Model):
         extra = f", min {self.min_minutes // 60}h" if self.min_minutes else ""
         return f"{self.start_hour}h → {self.end_hour}h{suffix}{extra}"
 
-    def compute_slot(self, start):
-        """Retourne (début, fin) ou lève ValidationError."""
+    def compute_slot(self, start, nights=1):
+        """Retourne (début, fin) ou lève ValidationError. `nights` ne vaut que pour les plages horaires."""
+        nights = max(int(nights or 1), 1)
         local = timezone.localtime(start).replace(second=0, microsecond=0)
         if self.kind == self.HOURLY:
             return local, local + timedelta(minutes=self.duration_minutes)
@@ -153,6 +154,8 @@ class Formula(models.Model):
         end = local.replace(hour=self.end_hour, minute=0)
         if self.end_next_day:
             end += timedelta(days=1)
+        if nights > 1:
+            end += timedelta(days=nights - 1)
         if end - local < timedelta(minutes=max(self.min_minutes, 1)):
             raise ValidationError(f"Trop tard pour la formule « {self.name} » : durée minimale non atteinte.")
         return local, end

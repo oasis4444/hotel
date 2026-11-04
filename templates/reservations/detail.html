@@ -2,7 +2,7 @@
 {% block title %}{{ res.code }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ res.guest_name }} <span class="pill {{ res.status }}" style="vertical-align:middle">{{ res.get_status_display }}</span></h1>
-  <p>{{ res.code }} · chambre {{ res.room.number }} · {{ res.formula.name }} · {{ res.get_source_display }}</p></div>
+  <p>{{ res.code }} · chambre {{ res.room.number }} · {{ res.formula.name }}{% if res.nights > 1 %} × {{ res.nights }} nuits{% endif %} · {{ res.guests }} pers. · {{ res.get_source_display }}</p></div>
   <div class="row">
     {% if res.status == 'accepted' or res.status == 'confirmed' %}{% if hperm.stay_checkin %}<a class="btn primary" href="{% url 'checkin' res.pk %}"><svg class="ic"><use href="#i-key"/></svg>Check-in</a>{% endif %}{% endif %}
     {% if res.is_active_pre and hperm.reservation_create %}<a class="btn" href="{% url 'reservation_edit' res.pk %}">Modifier</a>{% endif %}

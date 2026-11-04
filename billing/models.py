@@ -16,6 +16,9 @@ class Invoice(models.Model):
     order = models.OneToOneField("kitchen.Order", null=True, blank=True, on_delete=models.SET_NULL, related_name="order_invoice")
     customer_name = models.CharField(max_length=120)
     is_cancelled = models.BooleanField(default=False)
+    discount = models.PositiveIntegerField("Remise (Ar)", default=0)
+    discount_reason = models.CharField(max_length=300, blank=True)
+    discount_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -28,8 +31,12 @@ class Invoice(models.Model):
         return self.number
 
     @property
-    def total(self):
+    def subtotal(self):
         return sum(l.amount for l in self.lines.all() if not l.is_cancelled)
+
+    @property
+    def total(self):
+        return max(self.subtotal - self.discount, 0)
 
     @property
     def paid(self):

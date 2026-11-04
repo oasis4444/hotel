@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Rapport journalier{% endblock %}
+{% block content %}
+<style>
+.dr h2{font-size:15px;margin:18px 0 6px}.dr table{width:100%}.dr .sig{display:flex;gap:40px;margin-top:40px}.dr .sig div{flex:1;border-top:1px solid #000;padding-top:6px;font-size:12px}
+.print-only{display:none}
+@media print{.side,.top,.page-foot,.noprint,.tabs{display:none!important}.main{margin:0!important}.page{padding:0!important}.print-only{display:block}.card{box-shadow:none!important;border:0!important;padding:0!important}body{background:#fff!important;color:#000!important;font-size:12px}}
+</style>
+<div class="page-head noprint"><div><h1>Rapport journalier</h1><p>Main courante du {{ day|date:"l j F Y" }}.</p></div>
+  <div class="row"><a class="btn" href="?date={{ prev|date:'Y-m-d' }}">Veille</a><form method="get" class="row"><input type="date" name="date" value="{{ day|date:'Y-m-d' }}" onchange="this.form.submit()" aria-label="Date"></form><a class="btn" href="?date={{ next|date:'Y-m-d' }}">Lendemain</a>
+  <button class="btn primary" onclick="window.print()">Imprimer / PDF</button></div></div>
+<p class="small muted noprint">Pour un fichier PDF : « Imprimer » puis choisir « Enregistrer au format PDF » comme imprimante.</p>
+<div class="card dr">
+  <div class="print-only"><h1 style="margin:0">{{ hotel.name }}</h1><div>{{ hotel.address }} {{ hotel.phone }}</div><h2 style="font-size:18px">Main courante — {{ day|date:"l j F Y" }}</h2></div>
+  <p><b>{{ occupied }}</b> chambre{{ occupied|pluralize }} occupée{{ occupied|pluralize }} sur {{ rooms_total }} · Encaissé net <b>{{ total_in|ar }}</b> · Dépenses <b>{{ exp_total|ar }}</b> · Solde du jour <b>{{ net|ar }}</b></p>
+  <h2>Arrivées effectives ({{ arrivals|length }})</h2>
+  <table class="t"><thead><tr><th>Code</th><th>Client</th><th>Ch.</th><th>Formule</th><th>Pers.</th><th>Arrivée</th><th>Départ prévu</th></tr></thead><tbody>
+  {% for r in arrivals %}<tr><td>{{ r.code }}</td><td>{{ r.guest_name }}</td><td>{{ r.room.number }}</td><td>{{ r.formula.name }}{% if r.nights > 1 %} ×{{ r.nights }}{% endif %}</td><td>{{ r.guests }}</td><td>{{ r.actual_checkin|hm }}</td><td>{{ r.end_at|dm }}</td></tr>{% empty %}<tr><td colspan="7" class="muted">Aucune.</td></tr>{% endfor %}</tbody></table>
+  <h2>Départs ({{ departures|length }})</h2>
+  <table class="t"><thead><tr><th>Code</th><th>Client</th><th>Ch.</th><th>Formule</th><th>Départ</th></tr></thead><tbody>
+  {% for r in departures %}<tr><td>{{ r.code }}</td><td>{{ r.guest_name }}</td><td>{{ r.room.number }}</td><td>{{ r.formula.name }}</td><td>{{ r.actual_checkout|hm }}</td></tr>{% empty %}<tr><td colspan="5" class="muted">Aucun.</td></tr>{% endfor %}</tbody></table>
+  <h2>En séjour ({{ in_house|length }})</h2>
+  <table class="t"><thead><tr><th>Ch.</th><th>Client</th><th>Pers.</th><th>Depuis</th><th>Fin prévue</th></tr></thead><tbody>
+  {% for r in in_house %}<tr><td>{{ r.room.number }}</td><td>{{ r.guest_name }}</td><td>{{ r.guests }}</td><td>{{ r.actual_checkin|dm }}</td><td>{{ r.end_at|dm }}</td></tr>{% empty %}<tr><td colspan="5" class="muted">Aucun.</td></tr>{% endfor %}</tbody></table>
+  <h2>Arrivées attendues non encore arrivées ({{ expected|length }}) · annulations / no-show ({{ cancelled|length }})</h2>
+  <table class="t"><tbody>{% for r in expected %}<tr><td>{{ r.code }}</td><td>{{ r.guest_name }}</td><td>Ch. {{ r.room.number }}</td><td>{{ r.start_at|hm }}</td><td>{{ r.get_status_display }}</td></tr>{% empty %}<tr><td class="muted">Aucune.</td></tr>{% endfor %}</tbody></table>
+  <h2>Encaissements par mode</h2>
+  <table class="t"><tbody>{% for m, v in by_method %}<tr><td>{{ m }}</td><td class="num">{{ v|ar }}</td></tr>{% empty %}<tr><td class="muted">Aucun encaissement.</td></tr>{% endfor %}<tr><td><b>Total net</b></td><td class="num"><b>{{ total_in|ar }}</b></td></tr></tbody></table>
+  <h2>Détail des paiements</h2>
+  <table class="t"><thead><tr><th>Reçu</th><th>Heure</th><th>Facture</th><th>Mode</th><th>Type</th><th class="num">Montant</th><th>Par</th></tr></thead><tbody>
+  {% for p in pays %}<tr><td>{{ p.receipt_number }}</td><td>{{ p.created_at|hm }}</td><td>{{ p.invoice.number }}</td><td>{{ p.get_method_display }}</td><td>{{ p.get_kind_display }}</td><td class="num">{% if p.kind == 'refund' %}−{% endif %}{{ p.amount|ar }}</td><td>{{ p.user.display_name|default:"—" }}</td></tr>{% empty %}<tr><td colspan="7" class="muted">Aucun.</td></tr>{% endfor %}</tbody></table>
+  <h2>Dépenses du jour</h2>
+  <table class="t"><tbody>{% for e in exp_list %}<tr><td>{{ e.get_category_display }}</td><td>{{ e.description }}</td><td>{{ e.requester.display_name|default:e.requester.username }}</td><td class="num">{% if e.actual_amount is not None %}{{ e.actual_amount|ar }}{% else %}{{ e.advance_amount|ar }}{% endif %}</td></tr>{% empty %}<tr><td class="muted">Aucune dépense.</td></tr>{% endfor %}</tbody></table>
+  <div class="sig"><div>Réceptionniste ({{ printed_by.display_name|default:printed_by.username }})</div><div>Gérant</div></div>
+  <p class="small muted" style="margin-top:14px">Imprimé le {{ now|dm }} à {{ now|hm }}.</p>
+</div>
+{% endblock %}

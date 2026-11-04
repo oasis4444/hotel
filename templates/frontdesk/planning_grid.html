@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% load hotelrest %}
+{% block title %}Planning {% if mode == 'week' %}semaine{% else %}mois{% endif %}{% endblock %}
+{% block content %}
+<style>
+.pg{overflow:auto}.pg table{border-collapse:collapse;min-width:100%}
+.pg th,.pg td{border:1px solid var(--line);text-align:center;padding:0;min-width:{% if mode == 'week' %}96px{% else %}34px{% endif %};height:40px;font-size:12px}
+.pg th{background:var(--surface-2,var(--surface));position:sticky;top:0;z-index:2;padding:6px 4px}
+.pg th.rm,.pg td.rm{position:sticky;left:0;z-index:3;background:var(--surface);min-width:70px;font-weight:700;text-align:left;padding:4px 8px}
+.pg td a{display:block;height:100%;min-height:38px;line-height:1.2;padding:3px;color:#fff;text-decoration:none;overflow:hidden;font-weight:600}
+.pg td a+a{border-top:1px solid #fff6}
+.pg .st-pending{background:var(--dirty)}.pg .st-accepted,.pg .st-confirmed{background:var(--resv)}.pg .st-checked_in{background:var(--occ)}.pg .st-checked_out{background:var(--maint)}
+.pg th.today{outline:2px solid var(--occ);outline-offset:-2px}
+</style>
+<div class="tabs"><a href="{% url 'planning' %}?date={{ first|date:'Y-m-d' }}">Jour</a><a class="{% if mode == 'week' %}on{% endif %}" href="?vue=week&date={{ first|date:'Y-m-d' }}">Semaine</a><a class="{% if mode == 'month' %}on{% endif %}" href="?vue=month&date={{ first|date:'Y-m-d' }}">Mois</a></div>
+<div class="page-head"><div><h1>Planning {% if mode == 'week' %}de la semaine{% else %}du mois{% endif %}</h1><p>{% if mode == 'week' %}Du {{ first|date:"j F" }} au {{ days|last|date:"j F Y" }}{% else %}{{ first|date:"F Y" }}{% endif %} · occupation {{ rate }} % des chambres-jours</p></div>
+  <div class="row"><a class="btn" href="?vue={{ mode }}&date={{ prev|date:'Y-m-d' }}">Précédent</a><a class="btn" href="?vue={{ mode }}&date={{ today|date:'Y-m-d' }}">Aujourd'hui</a><a class="btn" href="?vue={{ mode }}&date={{ next|date:'Y-m-d' }}">Suivant</a></div></div>
+<div class="card pg"><table><thead><tr><th class="rm">Chambre</th>{% for d in days %}<th class="{% if d == today %}today{% endif %}">{% if mode == 'week' %}{{ d|date:"D j" }}{% else %}{{ d|date:"j" }}{% endif %}</th>{% endfor %}</tr></thead><tbody>
+{% for row in rows %}<tr><td class="rm">{{ row.room.number }}<br><span class="small muted">{{ row.room.room_type.name }}</span></td>
+{% for cell in row.cells %}<td>{% for r in cell %}<a class="st-{{ r.status }}" href="{% url 'reservation_detail' r.pk %}" title="{{ r.guest_name }} · {{ r.formula.name }} · {{ r.start_at|dm }} → {{ r.end_at|dm }}">{% if mode == 'week' %}{{ r.guest_name|truncatechars:12 }}{% else %}&nbsp;{% endif %}</a>{% endfor %}</td>{% endfor %}</tr>
+{% empty %}<tr><td colspan="{{ days|length|add:1 }}" class="empty"><b>Aucune chambre</b></td></tr>{% endfor %}</tbody></table></div>
+<div class="legend"><span><i style="background:var(--dirty)"></i>En attente</span><span><i style="background:var(--resv)"></i>Acceptée / confirmée</span><span><i style="background:var(--occ)"></i>En séjour</span><span><i style="background:var(--maint)"></i>Terminée</span></div>
+{% endblock %}

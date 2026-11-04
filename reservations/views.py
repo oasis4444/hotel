@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.contrib import messages
 from django.core.exceptions import ValidationError
@@ -9,10 +9,11 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from audit.models import AuditLog
+from billing.models import Payment
 from billing.services import ensure_invoice, line_allocations
 from hotels.models import Formula, Room
 from hotels.permissions import has_perm, perm_required
-from hotels.utils import parse_local
+from hotels.utils import parse_local, to_int
 
 from . import services as rs
 from .forms import ClientForm
@@ -23,6 +24,13 @@ S = Reservation.Status
 TABS = [
     ("todo", "À traiter"), ("upcoming", "À venir"), ("stay", "En séjour"), ("past", "Terminées"),
 ]
+
+
+def _date(value):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return None
 
 
 def _fail(request, exc):
@@ -36,9 +44,26 @@ def reservation_list(request):
     qs = Reservation.objects.filter(hotel=hotel).select_related("room", "formula", "client")
     tab = request.GET.get("tab", "todo")
     q = request.GET.get("q", "").strip()
+    f_from, f_to = request.GET.get("from", ""), request.GET.get("to", "")
+    f_room, f_src, f_status = request.GET.get("room", "").strip(), request.GET.get("source", ""), request.GET.get("status", "")
+    filtering = bool(q or f_from or f_to or f_room or f_src or f_status)
     now = timezone.now()
-    if q:
-        qs = qs.filter(Q(code__icontains=q) | Q(guest_name__icontains=q) | Q(phone__icontains=q) | Q(room__number__icontains=q))
+    if filtering:
+        if q:
+            qs = qs.filter(Q(code__icontains=q) | Q(guest_name__icontains=q) | Q(phone__icontains=q)
+                           | Q(room__number__icontains=q) | Q(client__first_name__icontains=q) | Q(client__last_name__icontains=q))
+        d1, d2 = _date(f_from), _date(f_to)
+        if d1:
+            qs = qs.filter(end_at__gte=timezone.make_aware(datetime.combine(d1, datetime.min.time())))
+        if d2:
+            qs = qs.filter(start_at__lt=timezone.make_aware(datetime.combine(d2, datetime.min.time())) + timedelta(days=1))
+        if f_room:
+            qs = qs.filter(room__number__iexact=f_room)
+        if f_src in dict(Reservation.Source.choices):
+            qs = qs.filter(source=f_src)
+        if f_status in dict(Reservation.Status.choices):
+            qs = qs.filter(status=f_status)
+        qs = qs.order_by("-start_at")
         tab = "all"
     elif tab == "todo":
         qs = qs.filter(Q(status=S.PENDING) | Q(status=S.ACCEPTED)).order_by("start_at")
@@ -53,7 +78,10 @@ def reservation_list(request):
         "stay": Reservation.objects.filter(hotel=hotel, status=S.CHECKED_IN).count(),
     }
     return render(request, "reservations/list.html", {
-        "items": qs[:150], "tabs": TABS, "tab": tab, "q": q, "counts": counts, "page": "reservations"})
+        "items": qs[:150], "tabs": TABS, "tab": tab, "q": q, "counts": counts, "page": "reservations",
+        "filtering": filtering, "f": {"from": f_from, "to": f_to, "room": f_room, "source": f_src, "status": f_status},
+        "sources": Reservation.Source.choices, "statuses": Reservation.Status.choices,
+        "rooms_all": Room.objects.filter(hotel=hotel, is_active=True).order_by("number")})
 
 
 def _form_context(request, res=None):
@@ -62,6 +90,8 @@ def _form_context(request, res=None):
         "formulas": Formula.objects.filter(hotel=hotel, is_active=True),
         "rooms": Room.objects.filter(hotel=hotel, is_active=True).select_related("room_type"),
         "res": res, "page": "reservations",
+        "sources": [(v, l) for v, l in Reservation.Source.choices if v != "online"],
+        "methods": Payment.Method.choices,
     }
 
 
@@ -74,17 +104,32 @@ def reservation_new(request):
         try:
             if not start:
                 raise ValidationError("Indiquez la date et l'heure d'arrivée.")
+            source = p.get("source", Reservation.Source.ONSITE)
+            if source not in (Reservation.Source.ONSITE, Reservation.Source.PHONE, Reservation.Source.WHATSAPP,
+                              Reservation.Source.AGENCY, Reservation.Source.BOOKING, Reservation.Source.COMPANY):
+                source = Reservation.Source.ONSITE
             res = rs.create_reservation(
                 request, request.hotel, int(p.get("room") or 0), int(p.get("formula") or 0), start,
-                p.get("source", Reservation.Source.ONSITE), p.get("guest_name", ""), p.get("phone", ""), p.get("notes", ""),
+                source, p.get("guest_name", ""), p.get("phone", ""), p.get("notes", ""),
+                nights=to_int(p.get("nights"), 1), guests=to_int(p.get("guests"), 1),
             )
             messages.success(request, f"Réservation {res.code} créée.")
+            deposit = to_int(p.get("deposit"), 0)
+            if deposit > 0:
+                try:
+                    from billing.services import add_payment, ensure_invoice
+
+                    add_payment(request, ensure_invoice(request, res), p.get("deposit_method", "cash"), deposit,
+                                p.get("deposit_ref", ""), res.phone)
+                    messages.success(request, f"Acompte de {deposit} Ar enregistré.")
+                except ValidationError as exc:
+                    messages.warning(request, "Réservation créée mais acompte non enregistré : " + " ".join(exc.messages))
             return redirect("reservation_detail", pk=res.pk)
         except (ValidationError, Room.DoesNotExist, Formula.DoesNotExist, ValueError) as e:
             _fail(request, e if isinstance(e, ValidationError) else ValidationError("Formule ou chambre invalide."))
         ctx["form"] = p
     else:
-        ctx["form"] = {"start": timezone.localtime().strftime("%Y-%m-%dT%H:%M"), "source": "onsite"}
+        ctx["form"] = {"start": timezone.localtime().strftime("%Y-%m-%dT%H:%M"), "source": "onsite", "nights": 1, "guests": 1}
         if request.GET.get("room"):
             ctx["form"]["room"] = request.GET["room"]
     return render(request, "reservations/form.html", ctx)
@@ -101,7 +146,8 @@ def reservation_edit(request, pk):
             if not start:
                 raise ValidationError("Indiquez la date et l'heure d'arrivée.")
             rs.modify_reservation(request, res, int(p.get("room") or 0), int(p.get("formula") or 0), start,
-                                  p.get("guest_name", ""), p.get("phone", ""), p.get("notes", ""))
+                                  p.get("guest_name", ""), p.get("phone", ""), p.get("notes", ""),
+                                  nights=to_int(p.get("nights"), 1), guests=to_int(p.get("guests"), 1))
             messages.success(request, "Réservation modifiée (l'ancienne valeur est conservée dans le journal).")
             return redirect("reservation_detail", pk=res.pk)
         except (ValidationError, Room.DoesNotExist, Formula.DoesNotExist, ValueError) as e:
@@ -109,7 +155,8 @@ def reservation_edit(request, pk):
         ctx["form"] = p
     else:
         ctx["form"] = {"start": res.start_at, "room": res.room_id, "formula": res.formula_id,
-                       "guest_name": res.guest_name, "phone": res.phone, "notes": res.notes, "source": res.source}
+                       "guest_name": res.guest_name, "phone": res.phone, "notes": res.notes, "source": res.source,
+                       "nights": res.nights, "guests": res.guests}
     return render(request, "reservations/form.html", ctx)
 
 
@@ -124,7 +171,8 @@ def available_api(request):
     if not start:
         return JsonResponse({"rooms": [], "error": "Choisissez l'heure d'arrivée."})
     try:
-        s, e = formula.compute_slot(start)
+        nights = max(to_int(request.GET.get("nights"), 1), 1) if formula.kind == Formula.WINDOW else 1
+        s, e = formula.compute_slot(start, nights)
     except ValidationError as exc:
         return JsonResponse({"rooms": [], "error": exc.messages[0]})
     exclude = None
@@ -132,10 +180,10 @@ def available_api(request):
         exclude = Reservation.objects.filter(pk=int(request.GET["exclude"]), hotel=request.hotel).first()
     rooms = [
         {"id": r.id, "number": r.number, "type": r.room_type.name}
-        for r, _s, _e in rs.available_rooms(request.hotel, formula, start, exclude=exclude)
+        for r, _s, _e in rs.available_rooms(request.hotel, formula, start, exclude=exclude, nights=nights)
     ]
     return JsonResponse({
-        "rooms": rooms, "price": formula.price,
+        "rooms": rooms, "price": formula.price * nights, "nights": nights,
         "start": timezone.localtime(s).strftime("%d/%m %Hh%M"), "end": timezone.localtime(e).strftime("%d/%m %Hh%M"),
     })
 

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/hotelrest.css' %}">
-  <style id="chrome-fixed">
+  <style id="chrome-fixed">.ring{width:68px!important;height:68px!important}.ring::before{inset:5px!important}.ring span{font:700 12px var(--f-display)!important;white-space:nowrap;letter-spacing:-.02em;line-height:1}
   .main { display: flex; flex-direction: column; min-height: 100vh; min-width: 0; }
   .top { position: sticky; top: 0; z-index: 30; }
   .page { flex: 1; padding-bottom: 76px; }
@@ -96,9 +96,9 @@
 <div class="app">
   <aside class="side" aria-label="Navigation principale"
     {% if page == 'board' or page == 'planning' %}data-open="chambres"
-    {% elif page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' %}data-open="argent"
-    {% elif page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' %}data-open="exploitation"
-    {% elif page == 'reports' or page == 'audit' or page == 'hotels' %}data-open="pilotage"
+    {% elif page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' or page == 'daily' %}data-open="argent"
+    {% elif page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' or page == 'linen' %}data-open="exploitation"
+    {% elif page == 'reports' or page == 'bilan' or page == 'audit' or page == 'hotels' %}data-open="pilotage"
     {% endif %}>
     <div class="side-scroll">
     <div class="brand">{% if current_hotel.logo %}<span class="brand-mark" style="padding:0;overflow:hidden"><img src="{{ current_hotel.logo.url }}" alt="" style="width:100%;height:100%;object-fit:cover"></span>{% else %}<span class="brand-mark"><svg class="ic"><use href="#i-key"/></svg></span>{% endif %}{{ APP_NAME }}</div>
@@ -125,19 +125,19 @@
         {% if hperm.client_view %}<a href="{% url 'clients' %}" class="{% if page == 'clients' %}on{% endif %}"><span class="nav-ic c-clients"><svg class="ic"><use href="#i-users"/></svg></span>Clients</a>{% endif %}
 
         {% if hperm.billing_view or hperm.shift_manage or hperm.remit_make or hperm.expense_request %}
-        <button type="button" class="nav-tile {% if page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' %}on{% endif %}" data-nav-open="argent">
+        <button type="button" class="nav-tile {% if page == 'invoices' or page == 'shift' or page == 'remittances' or page == 'expenses' or page == 'daily' %}on{% endif %}" data-nav-open="argent">
           <span class="nav-ic c-argent"><svg class="ic"><use href="#i-wallet"/></svg></span>Argent<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
         </button>
         {% endif %}
 
         {% if hperm.cleaning_view or hperm.kitchen_view or hperm.order_create or hperm.table_manage or hperm.stock_view or hperm.maintenance_view %}
-        <button type="button" class="nav-tile {% if page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' %}on{% endif %}" data-nav-open="exploitation">
+        <button type="button" class="nav-tile {% if page == 'cleaning' or page == 'kitchen' or page == 'tables' or page == 'stock' or page == 'maintenance' or page == 'linen' %}on{% endif %}" data-nav-open="exploitation">
           <span class="nav-ic c-exploit"><svg class="ic"><use href="#i-broom"/></svg></span>Exploitation<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
         </button>
         {% endif %}
 
         {% if hperm.reports_view or hperm.audit_view or hperm.hotel_manage %}
-        <button type="button" class="nav-tile {% if page == 'reports' or page == 'audit' or page == 'hotels' %}on{% endif %}" data-nav-open="pilotage">
+        <button type="button" class="nav-tile {% if page == 'reports' or page == 'bilan' or page == 'audit' or page == 'hotels' %}on{% endif %}" data-nav-open="pilotage">
           <span class="nav-ic c-pilotage"><svg class="ic"><use href="#i-shield"/></svg></span>Pilotage<svg class="ic nav-chev"><use href="#i-chevron"/></svg>
         </button>
         {% endif %}
@@ -160,6 +160,7 @@
         {% if hperm.shift_manage %}<a href="{% url 'shift' %}" class="{% if page == 'shift' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-cash"/></svg></span>Mon quart</a>{% endif %}
         {% if hperm.remit_make %}<a href="{% url 'remittances' %}" class="{% if page == 'remittances' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-wallet"/></svg></span>Versements</a>{% endif %}
         {% if hperm.expense_request %}<a href="{% url 'expenses' %}" class="{% if page == 'expenses' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-out"/></svg></span>Dépenses</a>{% endif %}
+        {% if hperm.report_daily %}<a href="{% url 'daily_report' %}" class="{% if page == 'daily' %}on{% endif %}"><span class="nav-ic sm c-argent"><svg class="ic"><use href="#i-receipt"/></svg></span>Rapport journalier</a>{% endif %}
       </nav>
       {% endif %}
 
@@ -172,6 +173,7 @@
         {% if hperm.table_manage %}<a href="{% url 'kitchen_tables' %}" class="{% if page == 'tables' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-board"/></svg></span>Tables</a>{% endif %}
         {% if hperm.stock_view %}<a href="{% url 'stock_items' %}" class="{% if page == 'stock' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-wallet"/></svg></span>Stock</a>{% endif %}
         {% if hperm.maintenance_view %}<a href="{% url 'maintenance' %}" class="{% if page == 'maintenance' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-shield"/></svg></span>Maintenance</a>{% endif %}
+        {% if hperm.cleaning_view %}<a href="{% url 'linen' %}" class="{% if page == 'linen' %}on{% endif %}"><span class="nav-ic sm c-exploit"><svg class="ic"><use href="#i-board"/></svg></span>Linge</a>{% endif %}
       </nav>
       {% endif %}
 
@@ -180,9 +182,11 @@
         <div class="nav-sub-h"><button type="button" class="nav-back" data-nav-back><svg class="ic" style="width:16px;height:16px"><use href="#i-back"/></svg>Retour</button></div>
         <b class="nav-sub-title">Pilotage</b>
         {% if hperm.reports_view %}<a href="{% url 'reports' %}" class="{% if page == 'reports' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-chart"/></svg></span>Rapports</a>{% endif %}
+        {% if hperm.reports_view %}<a href="{% url 'bilan' %}" class="{% if page == 'bilan' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-wallet"/></svg></span>Bilan et bénéfice</a>{% endif %}
         {% if hperm.audit_view %}<a href="{% url 'audit' %}" class="{% if page == 'audit' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-shield"/></svg></span>Journal d'audit</a>{% endif %}
         {% if hperm.hotel_manage %}<a href="{% url 'team' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-users"/></svg></span>Équipe</a>{% endif %}
         {% if hperm.hotel_manage %}<a href="{% url 'hotel_settings' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-key"/></svg></span>Paramètres hôtel</a>{% endif %}
+        {% if hperm.hotel_manage %}<a href="{% url 'tariffs' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-cash"/></svg></span>Tarifs et chambres</a>{% endif %}
         {% if hperm.hotel_manage %}<a href="{% url 'hotel_list' %}" class="{% if page == 'hotels' %}on{% endif %}"><span class="nav-ic sm c-pilotage"><svg class="ic"><use href="#i-plus"/></svg></span>Mes hôtels</a>{% endif %}
       </nav>
       {% endif %}

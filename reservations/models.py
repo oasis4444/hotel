@@ -77,6 +77,10 @@ class Reservation(models.Model):
         ONSITE = "onsite", "Sur place"
         PHONE = "phone", "Téléphone"
         ONLINE = "online", "En ligne"
+        WHATSAPP = "whatsapp", "WhatsApp"
+        AGENCY = "agency", "Agence"
+        BOOKING = "booking", "Booking"
+        COMPANY = "company", "Entreprise"
 
     class Call(models.TextChoices):
         NONE = "", "Pas encore appelé"
@@ -95,6 +99,8 @@ class Reservation(models.Model):
     start_at = models.DateTimeField("Début")
     end_at = models.DateTimeField("Fin")
     source = models.CharField(max_length=10, choices=Source.choices, default=Source.ONSITE)
+    nights = models.PositiveSmallIntegerField("Nombre de nuits", default=1)
+    guests = models.PositiveSmallIntegerField("Nombre de personnes", default=1)
     status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING, db_index=True)
     call_result = models.CharField(max_length=12, choices=Call.choices, blank=True, default="")
     call_attempts = models.PositiveSmallIntegerField(default=0)

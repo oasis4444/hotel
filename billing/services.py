@@ -12,6 +12,11 @@ def current_shift(request):
     return Shift.objects.filter(hotel=request.hotel, user=request.user, closed_at__isnull=True).first()
 
 
+def _room_label(res):
+    label = f"Chambre {res.room.number} · {res.formula.name}"
+    return f"{label} × {res.nights} nuits" if res.nights > 1 else label
+
+
 @transaction.atomic
 def ensure_invoice(request, res):
     try:
@@ -21,7 +26,7 @@ def ensure_invoice(request, res):
     number = f"F{Sequence.next(res.hotel, 'invoice'):06d}"
     user = request.user if getattr(request, "user", None) and request.user.is_authenticated else None
     inv = Invoice.objects.create(hotel=res.hotel, number=number, reservation=res, customer_name=res.guest_name, created_by=user)
-    add_line(request, inv, "room", f"Chambre {res.room.number} · {res.formula.name}", 1, res.formula.price)
+    add_line(request, inv, "room", _room_label(res), res.nights, res.formula.price)
     record(request, "invoice.create", inv, hotel=res.hotel)
     return inv
 
@@ -47,7 +52,7 @@ def sync_room_line(request, res):
     line = res.invoice.lines.filter(kind="room", is_cancelled=False).first()
     if line:
         cancel_line(request, line, "Changement de formule")
-    add_line(request, res.invoice, "room", f"Chambre {res.room.number} · {res.formula.name}", 1, res.formula.price)
+    add_line(request, res.invoice, "room", _room_label(res), res.nights, res.formula.price)
 
 
 def add_line(request, invoice, kind, description, qty, unit_price):
@@ -74,7 +79,7 @@ def cancel_line(request, line, reason):
 
 def line_allocations(invoice):
     """Répartit le net encaissé sur les lignes dans l'ordre : statut par ligne, calculé en temps réel."""
-    remaining = max(invoice.net_paid, 0)
+    remaining = max(invoice.net_paid, 0) + invoice.discount
     rows = []
     for line in invoice.lines.all():
         if line.is_cancelled:
@@ -131,3 +136,42 @@ def refund(request, invoice, method, amount, reason):
     )
     record(request, "payment.refund", invoice, after={"receipt": number, "method": method, "amount": amount}, reason=reason, hotel=invoice.hotel)
     return pay
+
+
+@transaction.atomic
+def apply_discount(request, invoice, value, unit, reason, auth_username="", auth_password=""):
+    """Remise sur facture : motif obligatoire + autorisation d'un gérant/propriétaire."""
+    from django.contrib.auth import authenticate
+
+    from hotels.models import Membership
+    from hotels.permissions import has_perm
+
+    if invoice.is_cancelled:
+        raise ValidationError("Cette facture est annulée.")
+    if len((reason or "").strip()) < 5:
+        raise ValidationError("Le motif de la remise est obligatoire (5 caractères minimum).")
+    if value <= 0:
+        raise ValidationError("Indiquez le montant ou le pourcentage de la remise.")
+    subtotal = invoice.subtotal
+    amount = round(subtotal * value / 100) if unit == "percent" else value
+    if unit == "percent" and value > 100:
+        raise ValidationError("Une remise ne peut pas dépasser 100 %.")
+    if amount > subtotal:
+        raise ValidationError("La remise dépasse le total de la facture.")
+    if subtotal - amount < invoice.net_paid:
+        raise ValidationError("Cette remise ferait passer le total sous le montant déjà encaissé : remboursez d'abord la différence.")
+    approver = None
+    if has_perm(getattr(request, "membership", None), "billing.discount"):
+        approver = request.user
+    else:
+        cand = authenticate(request, username=(auth_username or "").strip(), password=auth_password or "")
+        m = Membership.objects.filter(user=cand, hotel=invoice.hotel, is_active=True).first() if cand else None
+        if not m or not has_perm(m, "billing.discount"):
+            raise ValidationError("Autorisation refusée : un gérant ou le propriétaire doit saisir son identifiant et son mot de passe.")
+        approver = cand
+    before = {"discount": invoice.discount}
+    invoice.discount, invoice.discount_reason, invoice.discount_by = amount, reason.strip(), approver
+    invoice.save(update_fields=["discount", "discount_reason", "discount_by"])
+    record(request, "invoice.discount", invoice, before=before, after={"discount": amount, "authorized_by": str(approver)},
+           reason=reason, hotel=invoice.hotel)
+    return amount

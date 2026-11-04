@@ -8,7 +8,7 @@
     {% for a in allocs %}<div class="total-row" style="align-items:center"><span {% if a.status == 'cancelled' %}style="text-decoration:line-through;opacity:.6"{% endif %}>{{ a.line.description }}{% if a.line.quantity > 1 %} × {{ a.line.quantity }}{% endif %} <span class="pill {{ a.status }}">{% if a.status == 'paid' %}Payée{% elif a.status == 'partial' %}Partielle{% elif a.status == 'cancelled' %}Annulée{% else %}Non payée{% endif %}</span></span>
       <span class="row">{{ a.line.amount|ar }}
       {% if a.status != 'cancelled' and hperm.billing_pay %}<form method="post" action="{% url 'invoice_action' inv.pk 'cancel_line' %}" class="row" data-confirm="Annuler cette ligne ?">{% csrf_token %}<input type="hidden" name="line" value="{{ a.line.pk }}"><input type="text" name="reason" placeholder="Motif" style="width:110px;min-height:34px" required aria-label="Motif"><button class="btn sm ghost">Annuler</button></form>{% endif %}</span></div>{% endfor %}
-    <div class="total-row"><span>Total</span><span>{{ inv.total|ar }}</span></div><div class="total-row"><span>Encaissé (net)</span><span>{{ inv.net_paid|ar }}</span></div>
+    {% if inv.discount %}<div class="total-row"><span>Sous-total</span><span>{{ inv.subtotal|ar }}</span></div><div class="total-row"><span>Remise <span class="small muted">({{ inv.discount_reason }} · autorisée par {{ inv.discount_by.display_name|default:inv.discount_by }})</span></span><span>−{{ inv.discount|ar }}</span></div>{% endif %}<div class="total-row"><span>Total</span><span>{{ inv.total|ar }}</span></div><div class="total-row"><span>Encaissé (net)</span><span>{{ inv.net_paid|ar }}</span></div>
     {% if inv.refunded %}<div class="total-row"><span>Dont remboursé</span><span>{{ inv.refunded|ar }}</span></div>{% endif %}
     <div class="total-row big"><span>Solde à payer</span><span>{{ inv.balance|ar }}</span></div>
     {% if hperm.billing_pay and not inv.is_cancelled %}<details class="more"><summary>Ajouter une prestation (repas, service…)</summary>
@@ -33,6 +33,13 @@
       <div><label for="r">Référence de transaction</label><input id="r" type="text" name="reference" placeholder="Obligatoire pour le mobile money"></div>
       <div><label for="t">Numéro payeur</label><input id="t" type="tel" name="payer_phone"></div>
       <button class="btn primary block">Enregistrer le paiement</button></form></div>{% endif %}
+  {% if hperm.billing_pay and not inv.is_cancelled and not inv.discount %}
+  <div class="card"><div class="card-h"><h2>Remise</h2></div><p class="small muted">Motif obligatoire. {% if can_discount %}Vous l'autorisez vous-même.{% else %}Un gérant doit saisir son identifiant et son mot de passe.{% endif %}</p>
+    <form method="post" action="{% url 'invoice_action' inv.pk 'discount' %}" class="stack" data-confirm="Appliquer cette remise ?">{% csrf_token %}
+      <div class="row"><input type="number" name="value" min="1" placeholder="Valeur" required aria-label="Valeur" style="flex:1"><select name="unit" aria-label="Unité"><option value="ar">Ar</option><option value="percent">%</option></select></div>
+      <input type="text" name="reason" placeholder="Motif (obligatoire)" required aria-label="Motif">
+      {% if not can_discount %}<input type="text" name="auth_username" placeholder="Identifiant du gérant" autocomplete="off" required aria-label="Identifiant gérant"><input type="password" name="auth_password" placeholder="Mot de passe du gérant" autocomplete="off" required aria-label="Mot de passe gérant">{% endif %}
+      <button class="btn block">Appliquer la remise</button></form></div>{% endif %}
   {% if hperm.billing_refund and inv.net_paid > 0 %}
   <div class="card"><div class="card-h"><h2>Rembourser</h2></div><p class="small muted">Jamais pour un départ anticipé. Motif obligatoire.</p>
     <form method="post" action="{% url 'invoice_action' inv.pk 'refund' %}" class="stack" data-confirm="Enregistrer ce remboursement ?">{% csrf_token %}

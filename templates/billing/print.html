@@ -5,6 +5,6 @@
 <p><b>Facture {{ inv.number }}</b> · {{ inv.created_at|dm }}<br>Client : {{ inv.customer_name }}</p>
 <table><thead><tr><th>Description</th><th class="n">Qté</th><th class="n">Montant</th></tr></thead><tbody>
 {% for a in allocs %}{% if a.status != 'cancelled' %}<tr><td>{{ a.line.description }}</td><td class="n">{{ a.line.quantity }}</td><td class="n">{{ a.line.amount|ar }}</td></tr>{% endif %}{% endfor %}</tbody></table>
-<p class="tot">Total : {{ inv.total|ar }}</p><p>Payé : {{ inv.net_paid|ar }} · Reste : {{ inv.balance|ar }}</p>
+{% if inv.discount %}<p>Sous-total : {{ inv.subtotal|ar }} · Remise ({{ inv.discount_reason }}) : −{{ inv.discount|ar }}</p>{% endif %}<p class="tot">Total : {{ inv.total|ar }}</p><p>Payé : {{ inv.net_paid|ar }} · Reste : {{ inv.balance|ar }}</p>
 {% for p in payments %}<div>Reçu {{ p.receipt_number }} · {{ p.get_method_display }} · {{ p.amount|ar }} · {{ p.created_at|dm }}</div>{% endfor %}
 <p style="margin-top:30px">Merci de votre visite.</p></div></body></html>

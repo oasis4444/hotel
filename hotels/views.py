@@ -11,9 +11,9 @@ from django.views.decorators.http import require_POST
 from audit.service import record
 from reservations import services as rs
 
-from .models import Hotel, Membership
+from .models import Formula, Hotel, Membership, Room, RoomType
 from .permissions import perm_required
-from .utils import compress_image
+from .utils import compress_image, to_int
 
 
 @perm_required("dashboard.view")
@@ -124,6 +124,98 @@ def hotel_new(request):
     return render(request, "hotels/new.html", {"page": "hotels"})
 
 
+SETTING_FIELDS = [
+    ("overrun_tolerance_minutes", "Tolérance de dépassement"),
+    ("warn_before_end_minutes", "Préavis de fin de créneau"),
+    ("turnaround_minutes", "Remise en état entre deux séjours"),
+    ("cleaning_alert_minutes", "Alerte nettoyage trop long"),
+    ("cleaning_fraud_minutes", "Alerte anti-fraude nettoyage"),
+    ("unreachable_release_minutes", "Libération client injoignable"),
+    ("cash_variance_alert", "Seuil d'écart de caisse"),
+    ("expense_manager_threshold", "Seuil dépense gérant"),
+]
+
+
+@perm_required("hotel.manage")
+def tariffs(request):
+    """Formules tarifaires, types de chambre et chambres, sans passer par l'administration."""
+    hotel = request.hotel
+    if request.method == "POST":
+        p = request.POST
+        what = p.get("what")
+        try:
+            if what == "formula":
+                name = p.get("name", "").strip()
+                kind = p.get("kind", Formula.HOURLY)
+                price = to_int(p.get("price"), -1)
+                if len(name) < 2 or price < 0 or kind not in (Formula.HOURLY, Formula.WINDOW):
+                    raise ValidationError("Nom, type et tarif valides obligatoires.")
+                data = dict(
+                    name=name, kind=kind, price=price,
+                    duration_minutes=max(to_int(p.get("duration_minutes"), 60), 1),
+                    start_hour=min(to_int(p.get("start_hour"), 8), 23), end_hour=min(to_int(p.get("end_hour"), 17), 23),
+                    end_next_day=bool(p.get("end_next_day")), min_minutes=max(to_int(p.get("min_minutes"), 0), 0),
+                    sort_order=to_int(p.get("sort_order"), 0), is_active=True,
+                )
+                fid = to_int(p.get("id"), 0)
+                if fid:
+                    f = get_object_or_404(Formula, pk=fid, hotel=hotel)
+                    for k, v in data.items():
+                        setattr(f, k, v)
+                    f.save()
+                else:
+                    base = slugify(name)[:18] or "formule"
+                    code, n = base, 1
+                    while Formula.objects.filter(hotel=hotel, code=code).exists():
+                        n += 1
+                        code = f"{base}-{n}"
+                    f = Formula.objects.create(hotel=hotel, code=code, **data)
+                record(request, "formula.save", f, after={"name": f.name, "price": f.price}, hotel=hotel)
+                messages.success(request, f"Formule « {f.name} » enregistrée. Les réservations existantes gardent leur prix.")
+            elif what == "formula_toggle":
+                f = get_object_or_404(Formula, pk=to_int(p.get("id")), hotel=hotel)
+                f.is_active = not f.is_active
+                f.save(update_fields=["is_active"])
+                record(request, "formula.toggle", f, after={"active": f.is_active}, hotel=hotel)
+            elif what == "type":
+                name = p.get("name", "").strip()
+                if len(name) < 2:
+                    raise ValidationError("Nom du type de chambre obligatoire.")
+                tid = to_int(p.get("id"), 0)
+                cap = max(to_int(p.get("capacity"), 2), 1)
+                if tid:
+                    t = get_object_or_404(RoomType, pk=tid, hotel=hotel)
+                    t.name, t.capacity = name, cap
+                    t.save()
+                else:
+                    RoomType.objects.create(hotel=hotel, name=name, capacity=cap)
+                messages.success(request, "Type de chambre enregistré.")
+            elif what == "room":
+                number = p.get("number", "").strip()
+                t = get_object_or_404(RoomType, pk=to_int(p.get("room_type")), hotel=hotel)
+                if not number:
+                    raise ValidationError("Numéro de chambre obligatoire.")
+                if Room.objects.filter(hotel=hotel, number=number).exists():
+                    raise ValidationError("Ce numéro de chambre existe déjà.")
+                r = Room.objects.create(hotel=hotel, number=number, room_type=t, floor=p.get("floor", "").strip())
+                record(request, "room.create", r, after={"number": number}, hotel=hotel)
+                messages.success(request, f"Chambre {number} ajoutée.")
+            elif what == "room_toggle":
+                r = get_object_or_404(Room, pk=to_int(p.get("id")), hotel=hotel)
+                r.is_active = not r.is_active
+                r.save(update_fields=["is_active"])
+                record(request, "room.toggle", r, after={"active": r.is_active}, hotel=hotel)
+        except ValidationError as e:
+            for m in e.messages:
+                messages.error(request, m)
+        return redirect("tariffs")
+    return render(request, "hotels/tariffs.html", {
+        "formulas": Formula.objects.filter(hotel=hotel).order_by("sort_order", "price"),
+        "types": RoomType.objects.filter(hotel=hotel), "rooms": Room.objects.filter(hotel=hotel).select_related("room_type"),
+        "page": "hotels",
+    })
+
+
 @perm_required("hotel.manage")
 def hotel_settings(request):
     hotel = request.hotel
@@ -142,6 +234,12 @@ def hotel_settings(request):
             hotel.phone = request.POST.get("phone", "").strip()
             hotel.email = request.POST.get("email", "").strip()
             hotel.theme_color = color
+            for field, label in SETTING_FIELDS:
+                if field in request.POST:
+                    value = to_int(request.POST.get(field), getattr(hotel, field))
+                    if value < 0:
+                        raise ValidationError(f"{label} : valeur invalide.")
+                    setattr(hotel, field, value)
             if request.POST.get("remove_logo"):
                 hotel.logo = None
             if request.FILES.get("logo"):
@@ -154,7 +252,9 @@ def hotel_settings(request):
         except ValidationError as e:
             for m in e.messages:
                 messages.error(request, m)
-    return render(request, "hotels/settings.html", {"hotel": hotel, "page": "hotels"})
+    return render(request, "hotels/settings.html", {
+        "hotel": hotel, "page": "hotels",
+        "rules": [(f, l, getattr(hotel, f)) for f, l in SETTING_FIELDS]})
 
 
 @perm_required("hotel.manage")

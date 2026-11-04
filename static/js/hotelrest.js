@@ -41,7 +41,8 @@
   function pad(n) { return (n < 10 ? "0" : "") + n; }
   function fmt(ms) {
     var s = Math.floor(Math.abs(ms) / 1000), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60;
-    return (h ? h + ":" + pad(m) : pad(m)) + ":" + pad(x);
+    if (h >= 24) return Math.floor(h / 24) + "j" + pad(h % 24) + "h";
+    return h ? h + "h" + pad(m) : pad(m) + ":" + pad(x);
   }
   function tickCountdowns() {
     var now = Date.now();
@@ -129,7 +130,7 @@
     function refresh() {
       var f = form.elements["formula"].value, s = form.elements["start"].value;
       if (!f || !s) { info.textContent = "Choisissez une formule et l'heure d'arrivée."; return; }
-      var q = url + "?formula=" + encodeURIComponent(f) + "&start=" + encodeURIComponent(s) + (exclude ? "&exclude=" + exclude : "");
+      var q = url + "?formula=" + encodeURIComponent(f) + "&start=" + encodeURIComponent(s) + (exclude ? "&exclude=" + exclude : "") + (form.elements["nights"] ? "&nights=" + encodeURIComponent(form.elements["nights"].value || 1) : "");
       info.textContent = "Recherche des chambres libres…";
       fetch(q, { credentials: "same-origin" }).then(function (r) { return r.json(); }).then(function (d) {
         var current = sel.value || wanted;
@@ -147,6 +148,7 @@
     function later() { clearTimeout(timer); timer = setTimeout(refresh, 250); }
     form.elements["formula"].addEventListener("change", later);
     form.elements["start"].addEventListener("change", later);
+    if (form.elements["nights"]) { form.elements["nights"].addEventListener("input", later); }
     refresh();
   }
 
