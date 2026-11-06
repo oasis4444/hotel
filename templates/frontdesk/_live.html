@@ -14,17 +14,13 @@
       {% for t in tiles %}
       {% with s=t.state r=t.state.res %}
       <a class="tile s-{{ s.code }}" href="{% if r %}{% url 'reservation_detail' r.pk %}{% elif s.code == 'free' and hperm.reservation_create %}{% url 'reservation_new' %}?room={{ t.room.id }}{% elif s.code == 'cleaning' %}{% url 'cleaning' %}{% else %}#{% endif %}">
-        <div class="tile-top">
-          <div><div class="rn">{{ t.room.number }}</div><div class="rt">{{ t.room.room_type.name }}</div></div>
-          {% if s.code == 'occupied' %}
-            <div class="ring" style="--p: {{ s.progress }}"><span class="cd" data-end="{% epoch s.until %}" data-warn="{{ t.room.hotel.warn_before_end_minutes }}"></span></div>
-          {% endif %}
-        </div>
-        <div class="tile-foot">
+        <div class="rn-box"><div class="rn">{{ t.room.number }}</div><div class="rt">{{ t.room.room_type.name }}</div></div>
+        <div class="tile-mid">
           <span class="st">{{ s.label }}</span>
-          <span class="sub">{{ s.sub }}</span>
           {% if r %}<span class="who">{{ r.guest_name }} · {{ r.formula.name }}</span>{% endif %}
+          <span class="sub">{{ s.sub }}</span>
         </div>
+        {% if s.code == 'occupied' %}<div class="ring" style="--p: {{ s.progress }}"><span class="cd" data-end="{% epoch s.until %}" data-warn="{{ t.room.hotel.warn_before_end_minutes }}"></span></div>{% endif %}
       </a>
       {% endwith %}
       {% endfor %}
